@@ -277,8 +277,8 @@
           <div class="flex" style="margin-top:9px">
             <button class="btn sm" id="connTest">Test connection</button>
             <button class="btn ghost sm" id="openConnectorSettings">Connector settings</button>
-            <button class="btn ghost sm" data-url="http://127.0.0.1:8083">Use 127.0.0.1</button>
-            <button class="btn ghost sm" data-url="http://localhost:8083">Use localhost</button>
+            <button class="btn ghost sm" data-url="http://127.0.0.1:8082">Use 127.0.0.1</button>
+            <button class="btn ghost sm" data-url="http://localhost:8082">Use localhost</button>
           </div>
           <p class="hint" id="connDetail"></p>
         </div>
@@ -389,10 +389,10 @@
           <div class="field"><label>Bearer token (if Proxy Auth is on)</label><input type="text" id="setToken" /></div>
           <div class="flex"><button class="btn" id="setSave">Save settings</button>
             <button class="btn ghost" id="setTest">Test connection</button></div>
-          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8083 · Blank model uses the verified Nemotron fallback.</p>
+          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses the verified Nemotron fallback.</p>
         </div>
         <div class="card"><h3 style="margin:0 0 6px">Connection help</h3>
-          <p class="hint" style="margin:0">If you see “Failed to fetch”: start <b>mja-server</b> in Acode terminal, keep MJA on port 8083, and enable “Install unknown apps” + local network for this app. Try both 127.0.0.1 and localhost above.</p>
+          <p class="hint" style="margin:0">If you see “Failed to fetch”: start <b>mja-server</b> in Acode terminal, keep MJA on port 8082, and enable “Install unknown apps” + local network for this app. Try both 127.0.0.1 and localhost above.</p>
         </div>
       </div>
     </section>
@@ -430,7 +430,7 @@
   const $=id=>document.getElementById(id);
   const ls=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}};
   const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const url=()=>ls(K.url,"")||"http://127.0.0.1:8083";
+  const url=()=>ls(K.url,"")||"http://127.0.0.1:8082";
   const model=()=>ls(K.model,"")||"";
   const DEFAULT_MODEL="anthropic/nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b";
   const chosenModel=()=>model()||DEFAULT_MODEL;
@@ -446,7 +446,7 @@
   }
   function headers(){const h={"Content-Type":"application/json"};if(token())h.Authorization="Bearer "+token();return h}
   function candidates(){
-    const list=[url(),"http://127.0.0.1:8083","http://localhost:8083"];
+    const list=[url(),"http://127.0.0.1:8082","http://localhost:8082"];
     return list.map(s=>String(s).replace(/\/+$/,"")).filter((v,i,a)=>a.indexOf(v)===i);
   }
 
@@ -546,7 +546,7 @@
     const e=new Error(failure);e.fatal=true;return e;
   }
   function networkError(errs,sawHTTP){
-    return new Error(errs.join(" | ")+(sawHTTP?" — MJA returned an error.":" — make sure mja-server is running on port 8083."));
+    return new Error(errs.join(" | ")+(sawHTTP?" — MJA returned an error.":" — make sure mja-server is running on port 8082."));
   }
   function requestList(){
     return workingUrl?[workingUrl].concat(candidates().filter(u=>u!==workingUrl)):candidates();
@@ -1247,7 +1247,7 @@
     save(K.profile,prof);drawProfile();drawChat();toast("Profile saved")};
   $("settingsBtn").onclick=()=>{$("setUrl").value=url();$("setModel").value=model();$("setToken").value=token();switchView("settings")};
   $("profileBtn").onclick=()=>switchView("profile");
-  $("setSave").onclick=()=>{save(K.url,$("setUrl").value.trim().replace(/\/+$/,"")||"http://127.0.0.1:8083");
+  $("setSave").onclick=()=>{save(K.url,$("setUrl").value.trim().replace(/\/+$/,"")||"http://127.0.0.1:8082");
     save(K.model,$("setModel").value.trim());save(K.token,$("setToken").value.trim());
     workingUrl="";toast("Settings saved");loadModels(true);check()};
   $("setTest").onclick=()=>loadModels(true);
