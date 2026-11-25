@@ -1,0 +1,138 @@
+name: Watch MrJeffAgency and rebuild APK
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: mja-upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      sha: ${{ steps.upstream.outputs.sha }}
+      old: ${{ steps.check.outputs.old }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read latest upstream commit
+        id: upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha=$(gh api repos/MrJeffAgency/free-Ai-code/commits/main --jq .sha)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Upstream HEAD: $sha"
+
+      - name: Compare with saved commit
+        id: check
+        env:
+          NEW_SHA: ${{ steps.upstream.outputs.sha }}
+        run: |
+          old=$(tr -d '\r\n' < .github/mja-upstream-sha 2>/dev/null || true)
+          echo "old=$old" >> "$GITHUB_OUTPUT"
+          if [ "$old" = "$NEW_SHA" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new upstream commits."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New upstream commit: $NEW_SHA"
+          fi
+
+  rebuild:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      NEW_SHA: ${{ needs.check.outputs.sha }}
+      OLD_SHA: ${{ needs.check.outputs.old }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Android SDK packages
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Import upstream MJA Assistant
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/MrJeffAgency/free-Ai-code.git upstream
+          git -C upstream sparse-checkout set apps/mja-assistant
+          cp -a upstream/apps/mja-assistant/. .
+
+      - name: Reapply local fixes
+        run: python3 scripts/apply-mja-patches.py
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mja-assistant-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Create GitHub notification issue
+        run: |
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ -n "$OLD_SHA" ]; then
+            gh api "repos/MrJeffAgency/free-Ai-code/compare/$OLD_SHA...$NEW_SHA" > compare.json
+            python3 - <<'PY' >> commits.txt
+          import json
+          with open("compare.json", encoding="utf-8") as f:
+              data = json.load(f)
+          for commit in data.get("commits", []):
+              msg = commit["commit"]["message"].splitlines()[0]
+              print(f"- {commit['sha'][:7]} {msg}")
+          PY
+          else
+            echo "- $NEW_SHA initial tracked update" > commits.txt
+          fi
+          cat > issue.md <<EOF
+          @agentlucife MrJeffAgency pushed a new MJA Assistant update.
+
+          Upstream commit: \`$NEW_SHA\`
+
+          ### Commits
+          $(cat commits.txt)
+
+          ### Rebuilt APK
+          Download \`mja-assistant-debug\` from the artifact on this run:
+          $RUN_URL
+
+          Uninstall the previous debug build before installing this one.
+          EOF
+          gh issue create \
+            --title "MJA Assistant update from MrJeffAgency ($NEW_SHA)" \
+            --body-file issue.md
+
+      - name: Save new upstream commit
+        run: |
+          printf '%s\n' "$NEW_SHA" > .github/mja-upstream-sha
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync MJA Assistant with upstream $NEW_SHA"
+            git push
+          fi
