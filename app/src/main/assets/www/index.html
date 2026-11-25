@@ -508,7 +508,10 @@
   ];
 
   let caps=ls(K.caps,null);if(!caps||typeof caps!=="object"){caps={}}
-  CAPS.forEach(c=>{if(typeof caps[c[0]]!=="boolean")caps[c[0]]=true});
+  CAPS.forEach(c=>{if(typeof caps[c[0]]!=="boolean")caps[c[0]]=c[0]!=="live"});
+  /* Live tool calls caused errors from unconfigured connectors on older installs.
+     Turn them off once, then respect the user's choice from Settings. */
+  if(ls("mja.liveOff",false)!==true){caps.live=false;save("mja.liveOff",true)}
   let tools=ls(K.tools,null);if(!tools||typeof tools!=="object"){tools={};TOOLS.forEach(t=>tools[t[0]]=true)}
   let modeName=ls(K.mode,"General");if(!MODES[modeName])modeName="General";
   let prof=ls(K.profile,{name:"MrJeff",tag:"Powered by MJA · MrJeffAgency"});
@@ -516,6 +519,31 @@
   let chatgptStatus=null;let chatgptPoll=null;
   let busy=false;let controller=null;let attachments=[];let notes=ls(K.notes,[]);let editingNote=null;
   let history=[];try{history=ls(K.chat,[])}catch(e){history=[]}
+  /* Drop broken tool-call history. An assistant tool call without its tool result
+     makes the server reply "Unresolved tool calls in history" on the next message. */
+  function sanitizeHistory(){
+    const callIds=new Set();
+    history.forEach(m=>{
+      if(m&&m.role==="assistant"&&Array.isArray(m.tool_calls))
+        m.tool_calls.forEach(c=>{if(c&&c.id)callIds.add(c.id)});
+    });
+    const toolIds=new Set();
+    history.forEach(m=>{
+      if(m&&m.role==="tool"&&m.tool_call_id&&callIds.has(m.tool_call_id))toolIds.add(m.tool_call_id);
+    });
+    history=history.filter(m=>m&&typeof m==="object")
+      .filter(m=>m.role!=="tool"||toolIds.has(m.tool_call_id))
+      .map(m=>{
+        if(m.role==="assistant"&&Array.isArray(m.tool_calls)){
+          const calls=m.tool_calls.filter(c=>c&&toolIds.has(c.id));
+          const copy=Object.assign({},m);
+          if(calls.length)copy.tool_calls=calls;else delete copy.tool_calls;
+          return copy;
+        }
+        return m;
+      });
+  }
+  sanitizeHistory();
   let recents=ls(K.recents,[]);let artifacts=ls(K.artifacts,[]);
   let connectors=ls(K.connectors,{});if(!connectors||typeof connectors!=="object")connectors={};
 
@@ -858,7 +886,8 @@
     recents=recents.slice(0,25);save(K.recents,recents);drawRecents();drawStats();
   }
   function buildMessages(){
-    return history.filter(m=>m.role==="tool"||m.content||m.tool_calls).map(m=>{
+    const usable=history.filter(m=>caps.live||(m.role!=="tool"&&!m.tool_calls));
+    return usable.filter(m=>m.role==="tool"||m.content||m.tool_calls).map(m=>{
       const out={role:m.role,content:m.content||""};
       if(m.role==="assistant"&&m.tool_calls)out.tool_calls=m.tool_calls;
       if(m.role==="tool"&&m.tool_call_id)out.tool_call_id=m.tool_call_id;
@@ -950,7 +979,10 @@
     }catch(e){
       const m=(e&&e.name==="AbortError")?"":("\n\n⚠ "+((e&&e.message)||e));
       const target=history[history.length-1];
-      if(target&&target.role==="assistant")target.content+=m;else history.push({role:"assistant",content:m});
+      if(target&&target.role==="assistant"){
+        target.content+=m;
+        if(target.tool_calls)delete target.tool_calls;
+      }else history.push({role:"assistant",content:m});
       drawChat();showError(e.message||String(e));
     }finally{
       busy=false;controller=null;$("sendBtn").disabled=false;$("stopBtn").style.display="none";
