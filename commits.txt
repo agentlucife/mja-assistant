@@ -1,2 +1,4 @@
 - 6e5a529 Add Duck.ai search and image generation to MJA Assistant
 - 6408218 Make Duck.ai image generation strict and route web prompts
+- b89f699 Retry Duck.ai network failures before reporting image errors
+- 01d8a9a Add Byzar AI Gateway provider
