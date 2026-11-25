@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.MrJeffAgency.mjaassistant'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.MrJeffAgency.mjaassistant'
+        minSdk 24
+        targetSdk 35
+        versionCode 9
+        versionName '1.7.0'
+    }
+
+    buildTypes {
+        debug { debuggable false }
+        release { minifyEnabled false }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
