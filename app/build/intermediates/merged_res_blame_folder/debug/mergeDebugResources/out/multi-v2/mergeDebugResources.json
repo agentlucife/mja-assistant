@@ -1,0 +1,38 @@
+{
+    "logs": [
+        {
+            "outputFile": "io.github.MrJeffAgency.mjaassistant.app-debug-4:/values_values.arsc.flat",
+            "map": [
+                {
+                    "source": "/home/runner/work/mja-assistant/mja-assistant/app/src/main/res/values/styles.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "7",
+                        "endColumns": "12",
+                        "endOffsets": "387"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "106",
+                        "endLines": "8",
+                        "endColumns": "12",
+                        "endOffsets": "438"
+                    }
+                },
+                {
+                    "source": "/home/runner/work/mja-assistant/mja-assistant/app/src/main/res/values/strings.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "50",
+                        "endOffsets": "101"
+                    }
+                }
+            ]
+        }
+    ]
+}

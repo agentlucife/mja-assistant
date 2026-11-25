@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0b0e14" />
+<title>MJA Assistant</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121722; --panel2:#171d2b; --line:#232c3d;
+    --text:#e6edf7; --muted:#8b98ad; --accent:#f97316; --accent2:#fb923c;
+    --user:#1d2b45; --bot:#121722; --ok:#22c55e; --err:#ef4444; --radius:14px;
+  }
+  body[data-theme="light"]{
+    --bg:#f3f5f9; --panel:#ffffff; --panel2:#eef1f7; --line:#d8dee9;
+    --text:#16202e; --muted:#61708a; --accent:#ea580c; --accent2:#c2410c;
+    --user:#dbeafe; --bot:#ffffff; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px}
+  button,input,textarea,select{font-family:inherit}
+  button{cursor:pointer}
+  .app{display:flex;flex-direction:column;height:100vh;max-width:820px;margin:0 auto;position:relative}
+
+  header{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--panel);
+    border-bottom:1px solid var(--line);flex:0 0 auto}
+  header img.logo{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+  header img.avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--line)}
+  .brand{font-weight:700;font-size:16px;flex:1;line-height:1.1}
+  .brand small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:2px;flex:0 0 auto}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .iconbtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:7px 9px;font-size:14px;line-height:1}
+
+  .tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto}
+  .tab{flex:1;padding:10px 3px;text-align:center;background:none;border:0;color:var(--muted);
+    font-weight:600;font-size:13px;border-bottom:2px solid transparent}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  main{flex:1;overflow:hidden;position:relative}
+  .view{display:none;height:100%;flex-direction:column}
+  .view.active{display:flex}
+  .pane{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:11px}
+
+  /* chat */
+  .bar{display:flex;gap:7px;align-items:center;padding:8px 11px;border-bottom:1px solid var(--line);flex:0 0 auto;flex-wrap:wrap}
+  select,input[type=text],input[type=password]{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:8px 10px;font-size:13px;outline:none;min-width:0}
+  select{flex:1;min-width:110px;max-width:100%}
+  .btn{background:var(--accent);color:#0b0e14;border:0;border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn.sm{padding:6px 9px;font-size:12px}
+  .btn:disabled{opacity:.5}
+  #chatLog{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:93%;padding:11px 13px;border-radius:var(--radius);line-height:1.55;white-space:pre-wrap;
+    word-break:break-word;position:relative}
+  .msg.user{align-self:flex-end;background:var(--user);border-bottom-right-radius:4px}
+  .msg.bot{align-self:flex-start;background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg .who{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+  .msg pre{background:#080b11;border:1px solid var(--line);border-radius:9px;padding:10px;overflow-x:auto;
+    font-size:13px;white-space:pre;margin:8px 0}
+  body[data-theme="light"] .msg pre{background:#f1f5f9}
+  .msgcode{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .msgtools{display:flex;gap:6px;margin-top:8px}
+  .thinking{background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:8px 10px;
+    margin:6px 0;font-size:12px;color:var(--muted);white-space:normal}
+  .thinking summary{cursor:pointer;font-weight:700;color:var(--accent2);outline:none}
+  .thinking > div{margin-top:6px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .msg.toolresult{font-size:12px;opacity:.9}
+  .media-card{margin-top:7px}
+  .media-card img,.media-card video{display:block;max-width:100%;border-radius:10px;margin-top:6px;
+    border:1px solid var(--line);background:#000}
+  .media-card a{color:var(--accent2);font-size:12px;word-break:break-all}
+  .copy,.minibtn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:6px;font-size:11px;padding:3px 7px}
+  .empty{text-align:center;color:var(--muted);margin:auto;padding:20px;line-height:1.6}
+  .empty h2{color:var(--text);margin:0 0 8px;font-size:19px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;padding:0 11px 9px}
+  .chip{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:6px 11px;font-size:12px}
+  .composer{display:flex;gap:7px;padding:9px 11px;border-top:1px solid var(--line);flex:0 0 auto;align-items:flex-end}
+  .composer textarea{flex:1;min-height:44px;max-height:120px;resize:none;background:var(--panel2);
+    color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px;font-size:14px;outline:none}
+  .composer textarea:focus{border-color:var(--accent)}
+  .attachbar{display:none;gap:6px;flex-wrap:wrap;padding:0 11px 7px}
+  .attachbar.show{display:flex}
+  .atchip{background:var(--panel2);border:1px solid var(--accent);color:var(--text);border-radius:8px;
+    padding:5px 8px;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .atchip b{color:var(--accent);margin-left:5px}
+  .banner{display:none;margin:10px 11px 0;padding:10px 12px;border:1px solid var(--err);
+    background:rgba(239,68,68,.12);color:var(--text);border-radius:10px;font-size:12px;line-height:1.5;flex:0 0 auto}
+  .banner.show{display:block}
+  .banner b{color:var(--err)}
+  .banner button{margin-top:7px}
+
+  /* generic cards */
+  label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:4px 0;color:var(--muted);font-size:13px;line-height:1.5}
+  .row{display:flex;gap:9px;align-items:center;justify-content:space-between}
+  .flex{display:flex;gap:8px;flex-wrap:wrap}
+  .area{width:100%;min-height:160px;background:var(--panel);color:var(--text);border:1px solid var(--line);
+    border-radius:11px;padding:12px;font-family:ui-monospace,monospace;font-size:13px;outline:none;resize:vertical}
+  .result{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px;
+    white-space:pre-wrap;word-break:break-word;line-height:1.55;font-size:14px;min-height:60px}
+  .result pre{background:#080b11;border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto}
+  body[data-theme="light"] .result pre{background:#f1f5f9}
+  .listitem{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:8px}
+  .listitem:hover{border-color:var(--accent)}
+  .listitem b{font-size:14px}
+  .listitem span{font-size:12px;color:var(--muted);display:block;margin-top:3px;line-height:1.5}
+  .switch{position:relative;width:42px;height:23px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--line);border-radius:23px;transition:.2s}
+  .slider:before{content:"";position:absolute;width:17px;height:17px;left:3px;top:3px;background:#fff;
+    border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:var(--accent)}
+  .switch input:checked + .slider:before{transform:translateX(19px)}
+
+  /* notes */
+  .notes{display:flex;flex-direction:column;gap:8px}
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;cursor:pointer}
+  .note:hover{border-color:var(--accent)}
+  .note b{display:block;font-size:14px;margin-bottom:4px}
+  .note span{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .notetools{display:flex;gap:8px;margin-bottom:10px}
+  .notetools input{flex:1}
+  #noteEditor{display:none;flex-direction:column;gap:10px;flex:1}
+  #noteEditor.active{display:flex}
+  #noteTitle{width:100%;font-size:17px;font-weight:700}
+  #noteBody{flex:1;min-height:200px;width:100%;background:var(--panel);color:var(--text);
+    border:1px solid var(--line);border-radius:11px;padding:12px;resize:none;font-size:14px;outline:none}
+  #noteListPane.flex-off{display:none}
+
+  /* drawer */
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55}
+  .scrim.show{display:block}
+  .drawer{position:fixed;top:0;left:-285px;width:272px;height:100%;background:var(--panel);
+    border-right:1px solid var(--line);z-index:60;transition:left .2s ease;display:flex;flex-direction:column}
+  .drawer.open{left:0}
+  .drawerhead{padding:16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
+  .drawerhead img{width:44px;height:44px;border-radius:50%;border:2px solid var(--accent);object-fit:cover}
+  .drawerhead b{font-size:15px}
+  .drawerhead small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+  .drawerlist{flex:1;overflow-y:auto;padding:8px}
+  .mitem{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;background:none;border:0;
+    color:var(--text);border-radius:10px;font-size:14px;text-align:left}
+  .mitem:hover{background:var(--panel2)}
+  .mitem.sel{background:var(--panel2);color:var(--accent);font-weight:700}
+  .mitem .ic{width:22px;text-align:center;font-size:16px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);
+    color:#0b0e14;padding:10px 16px;border-radius:999px;font-weight:700;font-size:13px;
+    opacity:0;transition:opacity .25s;z-index:99;pointer-events:none;max-width:90%;text-align:center}
+  .toast.show{opacity:1}
+  .field{margin-bottom:11px}
+  .field input{width:100%}
+  .hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.55}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    padding:4px 9px;font-size:11px;color:var(--muted);margin:0 5px 5px 0}
+</style>
+</head>
+<body data-theme="dark">
+<div class="app">
+  <header>
+    <button class="iconbtn" id="menuBtn">☰</button>
+    <img class="logo" src="icon.png" alt="MJA" />
+    <div class="brand">MJA Assistant<small id="modeLabel">General mode</small></div>
+    <span class="dot" id="dot"></span>
+    <button class="iconbtn" id="profileBtn">👤</button>
+    <button class="iconbtn" id="settingsBtn">⚙</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="chat">💬 Chat</button>
+    <button class="tab" data-tab="code">&lt;/&gt; Code</button>
+    <button class="tab" data-tab="notes">📝 Notes</button>
+  </div>
+
+  <main>
+    <!-- CHAT -->
+    <section class="view active" id="view-chat">
+      <div class="bar">
+        <select id="modelSel"><option>(recommended model)</option></select>
+        <button class="btn ghost sm" id="newChat">New</button>
+        <button class="btn ghost sm" id="refreshModels">↻</button>
+        <button class="btn sm" id="stopBtn" style="display:none">Stop</button>
+      </div>
+      <div class="banner" id="errorBanner"></div>
+      <div id="chatLog">
+        <div class="empty" id="chatEmpty">
+          <h2>Hi, I'm your MJA Assistant 👋</h2>
+          I can chat, help with code, and talk about your notes — all through your local MJA server.
+        </div>
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip">Plan my day</button>
+        <button class="chip">Explain this code</button>
+        <button class="chip">Write a message</button>
+        <button class="chip">Brainstorm ideas</button>
+        <button class="chip">Use Duck.ai web</button>
+      </div>
+      <div class="attachbar" id="attachBar"></div>
+      <div class="composer">
+        <button class="btn ghost" id="attachBtn" title="Upload file">＋</button>
+        <button class="btn ghost" id="voiceBtn" title="Voice input">🎤</button>
+        <input type="file" id="fileInput" multiple hidden />
+        <textarea id="chatInput" placeholder="Ask me anything…"></textarea>
+        <button class="btn" id="sendBtn">Send</button>
+      </div>
+    </section>
+
+    <!-- CODE -->
+    <section class="view" id="view-code">
+      <div class="pane">
+        <label>Paste your code or error</label>
+        <textarea class="area" id="codeInput" placeholder="Paste code, an error, or describe what you need…"></textarea>
+        <div class="flex">
+          <button class="btn sm" data-act="Explain this code. Be concise.">Explain</button>
+          <button class="btn ghost sm" data-act="Find and fix the bugs. Return corrected code with a short explanation.">Fix bugs</button>
+          <button class="btn ghost sm" data-act="Optimize this code for readability and performance. Return the improved code.">Optimize</button>
+          <button class="btn ghost sm" data-act="Write unit tests for this code.">Write tests</button>
+          <button class="btn ghost sm" data-act="Add clear comments and documentation to this code.">Document</button>
+        </div>
+        <label>Result</label>
+        <div class="result" id="codeResult">Pick an action above to get started.</div>
+        <button class="btn ghost sm" id="codeArtifact">💾 Save result as artifact</button>
+      </div>
+    </section>
+
+    <!-- NOTES -->
+    <section class="view" id="view-notes">
+      <div class="pane" id="noteListPane">
+        <div class="notetools">
+          <input type="text" id="noteSearch" placeholder="Search notes…" />
+          <button class="btn" id="newNote">+ New</button>
+        </div>
+        <div class="notes" id="noteList"></div>
+      </div>
+      <div id="noteEditor">
+        <input type="text" id="noteTitle" placeholder="Note title" />
+        <textarea id="noteBody" placeholder="Write your note…"></textarea>
+        <div class="flex">
+          <button class="btn" id="noteSave">Save</button>
+          <button class="btn ghost" id="noteAsk">Ask AI about this</button>
+          <button class="btn ghost" id="noteDelete">Delete</button>
+          <button class="btn ghost" id="noteBack">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECENTS -->
+    <section class="view" id="view-recents">
+      <div class="pane">
+        <div class="row"><h3 style="margin:0">🕘 Recent chats</h3><button class="btn ghost sm" id="clearRecents">Clear all</button></div>
+        <div id="recentList"></div>
+      </div>
+    </section>
+
+    <!-- ARTIFACTS -->
+    <section class="view" id="view-artifacts">
+      <div class="pane">
+        <div class="row"><h3 style="margin:0">📦 Artifacts</h3><button class="btn ghost sm" id="clearArtifacts">Clear all</button></div>
+        <p style="color:var(--muted);font-size:12px;margin:0">Saved answers and code from your chats.</p>
+        <div id="artifactList"></div>
+      </div>
+    </section>
+
+    <!-- CONNECTORS -->
+    <section class="view" id="view-connectors">
+      <div class="pane">
+        <h3 style="margin:0">🔌 Connectors</h3>
+        <div class="card">
+          <div class="row"><div><h3 style="margin:0">MJA Server</h3><p id="connStatus">Checking…</p></div><span class="dot" id="connDot"></span></div>
+          <div class="flex" style="margin-top:9px">
+            <button class="btn sm" id="connTest">Test connection</button>
+            <button class="btn ghost sm" id="openConnectorSettings">Connector settings</button>
+            <button class="btn ghost sm" data-url="http://127.0.0.1:8082">Use 127.0.0.1</button>
+            <button class="btn ghost sm" data-url="http://localhost:8082">Use localhost</button>
+          </div>
+          <p class="hint" id="connDetail"></p>
+        </div>
+        <div class="card"><h3 style="margin:0">Providers / models</h3><div id="providerList"></div></div>
+      </div>
+    </section>
+
+    <!-- CONNECTOR SETTINGS -->
+    <section class="view" id="view-connectorsettings">
+      <div class="pane">
+        <h3 style="margin:0">🔐 Connector settings</h3>
+        <p style="color:var(--muted);font-size:12px;margin:0">Duck.ai needs no key. Sign in with ChatGPT or add a Google AI / Gemini key below. Other plug credentials are stored in this app and sent only to your local MJA server when you tap “Push keys to server”.</p>
+        <p style="color:var(--muted);font-size:12px;margin:0">The AI is told which connectors are ready, but never sees credential values.</p>
+        <div class="card" id="chatgptAuthCard">
+          <div class="row"><div><h3 style="margin:0">💬 ChatGPT / OpenAI sign-in</h3><p id="chatgptStatus">Checking…</p></div><span class="dot" id="chatgptDot"></span></div>
+          <div class="flex" style="margin-top:9px">
+            <button class="btn sm" data-chatgpt-login="browser">Browser login</button>
+            <button class="btn ghost sm" data-chatgpt-login="device">Device code</button>
+            <button class="btn ghost sm" id="chatgptRefresh">Refresh</button>
+            <button class="btn ghost sm" id="chatgptCancel">Cancel</button>
+            <button class="btn ghost sm" id="chatgptDisconnect">Disconnect</button>
+          </div>
+          <p class="hint" id="chatgptDetail" style="margin:8px 0 0"></p>
+        </div>
+        <div class="card" id="geminiCard">
+          <div class="row"><div><h3 style="margin:0">🔷 Google AI / Gemini API</h3><p id="geminiStatus">Checking…</p></div><span class="dot" id="geminiDot"></span></div>
+          <div class="flex" style="margin-top:9px">
+            <input type="password" id="geminiKey" placeholder="Gemini API key" style="flex:1;min-width:180px" />
+            <button class="btn sm" id="geminiEnable">Save &amp; enable</button>
+            <button class="btn ghost sm" data-openkey="Google AI / Gemini">Get key</button>
+          </div>
+          <p class="hint" id="geminiDetail" style="margin:8px 0 0">Uses a Google AI Studio key. Gemini models appear in the model picker after enabling.</p>
+        </div>
+        <div class="card" id="duckaiCard">
+          <div class="row"><div><h3 style="margin:0">🦆 Duck.ai web + images</h3><p id="duckaiStatus">Checking…</p></div><span class="dot" id="duckaiDot"></span></div>
+          <div class="flex" style="margin-top:9px">
+            <button class="btn ghost sm" id="duckaiOpenWeb">Open Duck.ai web</button>
+            <button class="btn sm" id="duckaiSearchWeb">Search with Duck.ai</button>
+          </div>
+          <p class="hint" id="duckaiDetail" style="margin:8px 0 0">No key needed. Prompts such as “craet in imger of italy” go from MJA to Duck.ai; generated images are saved on your local server and shown in chat with a download link. Duck.ai is required by default — no silent Pollinations fallback.</p>
+        </div>
+        <div class="flex">
+          <button class="btn sm" id="pushConnectorKeys">Push keys to server</button>
+          <button class="btn ghost sm" id="refreshConnectorStatus">Refresh status</button>
+        </div>
+        <p class="hint" style="margin:0">Formats: Shopify = <b>shop.myshopify.com|admin_token</b>, WhatsApp = <b>phone_number_id|access_token</b>, Google/Spotify = <b>client_id|client_secret</b> (optional third part: access_token), Pollinations/OpenCode = <b>api_key</b>. Duck.ai, Pollinations images, and slideshow video work with no key.</p>
+        <div id="connectorSettingList"></div>
+      </div>
+    </section>
+
+    <!-- TOOL PLUG -->
+    <section class="view" id="view-tools">
+      <div class="pane">
+        <h3 style="margin:0">🧩 Tool plug</h3>
+        <p style="color:var(--muted);font-size:12px;margin:0">Turn app tools on or off.</p>
+        <div id="toolList"></div>
+        <h3 style="margin:14px 0 0">🔌 Available plugs</h3>
+        <p style="color:var(--muted);font-size:12px;margin:0">Services MJA Assistant can reference while working. Direct access needs credentials or a connected tool.</p>
+        <div id="plugList"></div>
+      </div>
+    </section>
+
+    <!-- CAPABILITIES -->
+    <section class="view" id="view-caps">
+      <div class="pane">
+        <h3 style="margin:0">✨ Capabilities</h3>
+        <p style="color:var(--muted);font-size:12px;margin:0">What this assistant can do for you.</p>
+        <div id="capList"></div>
+      </div>
+    </section>
+
+    <!-- AI MODE -->
+    <section class="view" id="view-aimode">
+      <div class="pane">
+        <h3 style="margin:0">🤖 Change AI mode</h3>
+        <p style="color:var(--muted);font-size:12px;margin:0">Changes the assistant's personality for new chats.</p>
+        <div id="modeList"></div>
+      </div>
+    </section>
+
+    <!-- COLOR MODE -->
+    <section class="view" id="view-theme">
+      <div class="pane">
+        <h3 style="margin:0">🎨 Color mode</h3>
+        <div class="card"><div class="row"><div><h3 style="margin:0">Dark mode</h3><p>Dark theme for night use.</p></div>
+          <label class="switch"><input type="checkbox" id="darkToggle" checked><span class="slider"></span></label></div></div>
+        <div class="card"><div class="row"><div><h3 style="margin:0">Light mode</h3><p>Bright theme for daylight.</p></div>
+          <button class="btn ghost sm" id="lightBtn">Switch</button></div></div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="view" id="view-profile">
+      <div class="pane">
+        <div class="card" style="text-align:center">
+          <img src="icon.png" style="width:76px;height:76px;border-radius:50%;border:3px solid var(--accent);object-fit:cover" />
+          <h3 id="profNameView" style="margin:10px 0 3px">MrJeff</h3>
+          <p id="profTagView" style="margin:0">Powered by MJA · MrJeffAgency</p>
+        </div>
+        <div class="card">
+          <div class="field"><label>Display name</label><input type="text" id="profName" /></div>
+          <div class="field"><label>Tagline</label><input type="text" id="profTag" /></div>
+          <button class="btn" id="profSave">Save profile</button>
+        </div>
+        <div class="card"><h3 style="margin:0 0 8px">Your stats</h3><div id="profStats"></div></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="pane">
+        <h3 style="margin:0">⚙ Settings</h3>
+        <div class="card">
+          <div class="field"><label>Server URL</label><input type="text" id="setUrl" /></div>
+          <div class="field"><label>Model (blank = recommended Gemini Flash Lite)</label><input type="text" id="setModel" /></div>
+          <div class="field"><label>Bearer token (if Proxy Auth is on)</label><input type="text" id="setToken" /></div>
+          <div class="flex"><button class="btn" id="setSave">Save settings</button>
+            <button class="btn ghost" id="setTest">Test connection</button></div>
+          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses the Gemini 3.5 Flash Lite fallback.</p>
+        </div>
+        <div class="card"><h3 style="margin:0 0 6px">Connection help</h3>
+          <p class="hint" style="margin:0">If you see “Failed to fetch”: start <b>mja-server</b> in Acode terminal, keep MJA on port 8082, and enable “Install unknown apps” + local network for this app. Try both 127.0.0.1 and localhost above.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer">
+  <div class="drawerhead">
+    <img src="icon.png" alt="MJA" />
+    <div><b>MJA Assistant</b><small id="drawerSub">Your daily AI</small></div>
+  </div>
+  <div class="drawerlist" id="drawerList">
+    <button class="mitem sel" data-go="chat"><span class="ic">💬</span> Chat</button>
+    <button class="mitem" data-go="recents"><span class="ic">🕘</span> Recents</button>
+    <button class="mitem" data-go="artifacts"><span class="ic">📦</span> Artifacts</button>
+    <button class="mitem" data-go="connectors"><span class="ic">🔌</span> Connectors</button>
+    <button class="mitem" data-go="connectorsettings"><span class="ic">🔐</span> Connector settings</button>
+    <button class="mitem" data-go="tools"><span class="ic">🧩</span> Tool plug</button>
+    <button class="mitem" data-go="caps"><span class="ic">✨</span> Capabilities</button>
+    <button class="mitem" data-go="aimode"><span class="ic">🤖</span> Change AI mode</button>
+    <button class="mitem" data-go="theme"><span class="ic">🎨</span> Color mode</button>
+    <button class="mitem" data-go="profile"><span class="ic">👤</span> Profile</button>
+    <button class="mitem" data-go="settings"><span class="ic">⚙</span> Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  const K={url:"mja.url",model:"mja.model",token:"mja.token",notes:"mja.notes",chat:"mja.chat",
+    recents:"mja.recents",artifacts:"mja.artifacts",theme:"mja.theme",mode:"mja.mode",
+    profile:"mja.profile",caps:"mja.caps",tools:"mja.tools",connectors:"mja.connectors"};
+  const $=id=>document.getElementById(id);
+  const ls=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}};
+  const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+  const url=()=>ls(K.url,"")||"http://127.0.0.1:8082";
+  const model=()=>ls(K.model,"")||"";
+  const DEFAULT_MODEL="gemini/models/gemini-3.5-flash-lite";
+  const chosenModel=()=>model()||DEFAULT_MODEL;
+  const token=()=>ls(K.token,"")||"";
+  const esc=s=>String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const toast=t=>{const e=$("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)};
+  function openExternal(u){
+    if(!u)return;
+    if(window.MJAExternal&&typeof window.MJAExternal.openExternal==="function"){
+      window.MJAExternal.openExternal(u);return;
+    }
+    const w=window.open(u,"_blank");if(!w)window.location.href=u;
+  }
+  function headers(){const h={"Content-Type":"application/json"};if(token())h.Authorization="Bearer "+token();return h}
+  function candidates(){
+    const list=[url(),"http://127.0.0.1:8082","http://localhost:8082"];
+    return list.map(s=>String(s).replace(/\/+$/,"")).filter((v,i,a)=>a.indexOf(v)===i);
+  }
+
+  const MODES={
+    General:"You are MJA Assistant, a friendly, helpful daily assistant. Be clear and practical.",
+    Coding:"You are an expert software engineer. Give correct, runnable code in markdown fences and explain briefly.",
+    Creative:"You are a creative writing and brainstorming partner. Be imaginative, vivid, and encouraging.",
+    Focused:"You are a concise assistant. Answer in short, direct bullets. No filler."
+  };
+  const CAPS=[
+    ["streaming","Streamed answers","Show AI replies as they are written."],
+    ["artifacts","Artifacts","Save answers as reusable artifacts."],
+    ["voice","Voice input","Microphone button in chat."],
+    ["upload","File upload","+ button to attach files."],
+    ["code","Code actions","Explain, fix, optimize, test code."],
+    ["thinking","Thinking view","Show the model's reasoning before the answer."],
+    ["live","Live plug execution","Let the AI call configured connector tools."],
+    ["media","Image and video creation","Let the AI generate images and short videos."],
+    ["plugs","Plug awareness","Know the service names available for planning work."],
+    ["notes","Notes","Local notes and Ask AI."]
+  ];
+  const TOOLS=[
+    ["attach","＋ File attach","Reads text files into your chat."],
+    ["voice","🎤 Voice input","Speech-to-text on supported WebViews."],
+    ["model","🤖 Model picker","Choose which model answers."],
+    ["artifact","💾 Artifacts","Save results for later."],
+    ["recent","🕘 Recents","Reopen earlier chats."]
+  ];
+  const PLUGS=[
+    ["Google Drive","Cloud files and documents."],
+    ["Duck.ai","No-key web search and AI image generation through Duck.ai."],
+    ["Pollinations AI","Free AI image generation and optional true AI video."],
+    ["OpenCode Free","Free OpenCode models through the local MJA server."],
+    ["ChatGPT / OpenAI","ChatGPT sign-in for OpenAI Codex models."],
+    ["Google AI / Gemini","Gemini models through a Google AI Studio key."],
+    ["Canva","Visual design and social graphics."],
+    ["Supabase","Database, auth, storage, and edge functions."],
+    ["Fiverr","Freelance services and gigs."],
+    ["Vercel","Web hosting, previews, and deploys."],
+    ["Netlify","Web hosting, forms, and deploys."],
+    ["Base44","App and workflow building."],
+    ["Replit","Online coding, running, and deploying projects."],
+    ["Crypto.com","Crypto account, payments, and portfolio tasks."],
+    ["Wix","Website building and publishing."],
+    ["Acode / Termux","On-device code editing and terminal work."],
+    ["Android Builder","Build signed Android APK and AAB packages."],
+    ["Bill","Billing and invoice work."],
+    ["GitHub","Repositories, commits, issues, and releases."],
+    ["Spotify","Music streaming, playlists, and listening history."],
+    ["Shopify","Store products, orders, and checkout work."],
+    ["Manus","Autonomous agent tasks and research."],
+    ["WhatsApp by Agent Messenger","WhatsApp messaging through Agent Messenger."],
+    ["Relationship reply coach","Draft thoughtful relationship replies."],
+    ["Mobile app builder","Plan and build mobile apps."],
+    ["Lovable","AI app and website generation."],
+    ["Railway","Backend services, databases, and deploys."],
+    ["Sleep Cycle","Sleep tracking and routine insights."],
+    ["Shazam","Song recognition and music discovery."],
+    ["Idealista","Property listings and real-estate search."]
+  ];
+
+  let caps=ls(K.caps,null);if(!caps||typeof caps!=="object"){caps={}}
+  CAPS.forEach(c=>{if(typeof caps[c[0]]!=="boolean")caps[c[0]]=c[0]!=="live"});
+  if(ls("mja.liveOff",false)!==true){caps.live=false;save("mja.liveOff",true)}
+  let tools=ls(K.tools,null);if(!tools||typeof tools!=="object"){tools={};TOOLS.forEach(t=>tools[t[0]]=true)}
+  let modeName=ls(K.mode,"General");if(!MODES[modeName])modeName="General";
+  let prof=ls(K.profile,{name:"MrJeff",tag:"Powered by MJA · MrJeffAgency"});
+  let modelList=[];let connectorTools=[];let connectorStatus={};
+  let chatgptStatus=null;let chatgptPoll=null;
+  let busy=false;let controller=null;let attachments=[];let notes=ls(K.notes,[]);let editingNote=null;
+  let history=[];try{history=ls(K.chat,[])}catch(e){history=[]}
+  /* Drop broken tool-call history. An assistant tool call without its tool result
+     makes the server reply "Unresolved tool calls in history" on the next message. */
+  function sanitizeHistory(){
+    const callIds=new Set();
+    history.forEach(m=>{
+      if(m&&m.role==="assistant"&&Array.isArray(m.tool_calls))
+        m.tool_calls.forEach(c=>{if(c&&c.id)callIds.add(c.id)});
+    });
+    const toolIds=new Set();
+    history.forEach(m=>{
+      if(m&&m.role==="tool"&&m.tool_call_id&&callIds.has(m.tool_call_id))toolIds.add(m.tool_call_id);
+    });
+    history=history.filter(m=>m&&typeof m==="object")
+      .filter(m=>m.role!=="tool"||toolIds.has(m.tool_call_id))
+      .map(m=>{
+        if(m.role==="assistant"&&Array.isArray(m.tool_calls)){
+          const calls=m.tool_calls.filter(c=>c&&toolIds.has(c.id));
+          const copy=Object.assign({},m);
+          if(calls.length)copy.tool_calls=calls;else delete copy.tool_calls;
+          return copy;
+        }
+        return m;
+      });
+  }
+  sanitizeHistory();
+  let recents=ls(K.recents,[]);let artifacts=ls(K.artifacts,[]);
+  let connectors=ls(K.connectors,{});if(!connectors||typeof connectors!=="object")connectors={};
+
+  /* ---------- network with fallback ---------- */
+  let workingUrl="";
+  function showError(msg,title){
+    const b=$("errorBanner");
+    b.innerHTML="<b>⚠ "+esc(title||"MJA error")+"</b><br>"+esc(msg)+
+      "<br><button class='btn ghost sm' id='bannerRetry'>Retry now</button>";
+    b.classList.add("show");
+    $("bannerRetry").onclick=()=>loadModels(true);
+  }
+  function clearError(){$("errorBanner").classList.remove("show");$("errorBanner").innerHTML=""}
+  async function errorDetail(r){
+    try{
+      const text=(await r.text()).trim();
+      if(!text)return "";
+      try{
+        const j=JSON.parse(text);
+        return String((j.error&&j.error.message)||j.message||j.detail||text).slice(0,400);
+      }catch(_){return text.slice(0,400)}
+    }catch(_){return ""}
+  }
+  function clientErrorStatus(status){
+    return status>=400&&status<500&&status!==408&&status!==429;
+  }
+  function fatalError(failure){
+    const e=new Error(failure);e.fatal=true;return e;
+  }
+  function networkError(errs,sawHTTP){
+    return new Error(errs.join(" | ")+(sawHTTP?" — MJA returned an error.":" — make sure mja-server is running on port 8082."));
+  }
+  function requestList(){
+    return workingUrl?[workingUrl].concat(candidates().filter(u=>u!==workingUrl)):candidates();
+  }
+  async function fetchJSON(path,opts,timeout){
+    opts=opts||{};timeout=timeout||9000;
+    const errs=[];let sawHTTP=false;
+    for(const base of requestList()){
+      const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),timeout);
+      try{
+        const r=await fetch(base+path,{...opts,signal:ac.signal});
+        clearTimeout(timer);sawHTTP=true;
+        if(!r.ok){
+          const detail=await errorDetail(r);
+          const failure=base+" → HTTP "+r.status+(detail?" · "+detail:"");
+          errs.push(failure);
+          if(clientErrorStatus(r.status)){setDot(true);throw fatalError(failure)}
+          continue;
+        }
+        workingUrl=base;setDot(true);clearError();
+        return r;
+      }catch(e){
+        clearTimeout(timer);
+        if(e&&e.fatal)throw e;
+        if(e&&e.name==="AbortError"&&opts.signal&&opts.signal.aborted)throw e;
+        errs.push(base+" → "+((e&&e.message)||"blocked"));
+      }
+    }
+    setDot(false);throw networkError(errs,sawHTTP);
+  }
+  async function streamChat(payload,signal){
+    const errs=[];let sawHTTP=false;
+    for(const base of requestList()){
+      try{
+        const r=await fetch(base+"/v1/chat/completions",{method:"POST",headers:headers(),
+          body:JSON.stringify(payload),signal:signal});
+        sawHTTP=true;
+        if(!r.ok){
+          const detail=await errorDetail(r);
+          const failure=base+" → HTTP "+r.status+(detail?" · "+detail:"");
+          errs.push(failure);
+          if(clientErrorStatus(r.status)){setDot(true);throw fatalError(failure)}
+          continue;
+        }
+        workingUrl=base;setDot(true);clearError();return r;
+      }catch(e){
+        if(e&&e.fatal)throw e;
+        if(e&&e.name==="AbortError")throw e;
+        errs.push(base+" → "+((e&&e.message)||"blocked"));
+      }
+    }
+    setDot(false);throw networkError(errs,sawHTTP);
+  }
+  function setDot(on){$("dot").classList.toggle("on",!!on);$("connDot").classList.toggle("on",!!on)}
+  function plugContext(){
+    if(!caps.plugs)return "";
+    return " Available plugs you may reference when planning, explaining, or breaking down work: "+
+      PLUGS.map(p=>p[0]).join(", ")+
+      ". You do not have direct access to any plug unless the user provides credentials, files, or a connected tool.";
+  }
+  function connectorContext(){
+    const names=PLUGS.filter(p=>connectors[p[0]]).map(p=>p[0]);
+    if(!names.length)return "";
+    return " Connectors with locally saved credentials: "+names.join(", ")+
+      ". Treat them as configured, but still require a connected tool before direct use. Never reveal credential values.";
+  }
+  function thinkingContext(){
+    if(!caps.thinking)return "";
+    return " When asked to build, create, zip, deploy, or write a project, first show a short visible plan labeled 'Thinking': goal, stack/tool choices, files, and steps. Then provide the finished result. If credentials are missing, say exactly what is needed.";
+  }
+  function activeConnectorTools(){
+    const mediaOnly={pollinations_generate_image:1,pollinations_generate_video:1,duckai_generate_image:1};
+    return connectorTools.filter(t=>caps.media||!mediaOnly[String(t.function&&t.function.name||"")]);
+  }
+  function liveContext(){
+    const active=activeConnectorTools();
+    if(!caps.live||!active.length)return "";
+    return " Live connector tools are available: "+active.map(t=>t.function&&t.function.name).filter(Boolean).join(", ")+
+      ". Use them only when needed and report the result clearly. Image and video tools return playable, downloadable media links; include them in your final answer."+
+      " For image creation, use duckai_generate_image. Use pollinations_generate_image only when the user explicitly asks for Pollinations; fallback=true on duckai_generate_image is opt-in and must be labeled."+
+      " The phrase 'Duck.ai web' means duckai_web_search or opening https://duck.ai/, never image generation."+
+      " If Duck.ai image generation fails, report the error plainly; do not silently switch providers.";
+  }
+  function sysPrompt(){return (MODES[modeName]||MODES.General)+plugContext()+connectorContext()+thinkingContext()+liveContext()}
+
+  async function loadModels(show){
+    const sel=$("modelSel");
+    try{
+      const r=await fetchJSON("/v1/models",{headers:headers()},9000);
+      const d=await r.json();modelList=(d.data||[]).map(m=>m.id).filter(Boolean);
+      sel.innerHTML="";sel.appendChild(new Option("(recommended model)",""));
+      modelList.forEach(m=>sel.appendChild(new Option(m,m)));sel.value=model();
+      $("connStatus").textContent="Connected · "+modelList.length+" models available";
+      $("connDetail").textContent="Working server: "+(workingUrl||url())+" · Model: "+chosenModel();
+      renderProviders(d.data||[]);
+      if(show)toast("Connected · "+modelList.length+" models");
+    }catch(e){
+      sel.innerHTML="<option>(server unreachable)</option>";
+      $("connStatus").textContent="Not connected";
+      $("connDetail").textContent=e.message;
+      showError(e.message);
+    }
+  }
+  async function loadConnectors(show){
+    try{
+      const r=await fetchJSON("/v1/connectors",{headers:headers()},9000);
+      const d=await r.json();connectorTools=Array.isArray(d.tools)?d.tools:[];
+      connectorStatus={};(d.connectors||[]).forEach(c=>{connectorStatus[c.id]=c});
+      drawConnectorSettings();
+      if(show)toast("Connector status refreshed");
+    }catch(e){connectorTools=[];connectorStatus={};drawConnectorSettings()}
+  }
+  function drawChatgptStatus(){
+    const s=chatgptStatus;
+    const state=s&&s.state?String(s.state):"disconnected";
+    let label="Not connected",detail="Sign in with your ChatGPT / OpenAI account.";
+    if(state==="connected"){
+      label="Connected"+(s.email?" · "+s.email:"");
+      detail=s.model_count?s.model_count+" models available through this account.":"Account ready for OpenAI Codex models.";
+    }else if(state==="connecting"){
+      label="Connecting…";
+      const parts=[];
+      if(s.verification_url)parts.push("Open "+s.verification_url);
+      if(s.user_code)parts.push("Enter code "+s.user_code);
+      if(s.authorization_url)parts.push("Finish sign-in in your browser");
+      if(s.expires_at)parts.push("Expires "+time(Number(s.expires_at)*1000));
+      if(s.message)parts.push(s.message);
+      detail=parts.join(" · ")||"Waiting for sign-in to finish.";
+    }else if(state==="error"){
+      label="Sign-in error";detail=s.message||"Could not connect. Try again.";
+    }
+    if($("chatgptStatus"))$("chatgptStatus").textContent=label;
+    if($("chatgptDetail"))$("chatgptDetail").textContent=detail;
+    if($("chatgptDot"))$("chatgptDot").classList.toggle("on",!!(s&&s.connected));
+    if($("chatgptCancel"))$("chatgptCancel").style.display=state==="connecting"?"":"none";
+    if($("chatgptDisconnect"))$("chatgptDisconnect").style.display=!!(s&&s.connected)?"":"none";
+  }
+  async function loadChatgptStatus(show){
+    try{
+      const r=await fetchJSON("/v1/connectors/chatgpt/auth",{headers:headers()},9000);
+      chatgptStatus=await r.json();drawChatgptStatus();
+      if(show)toast("ChatGPT status refreshed");
+      return chatgptStatus;
+    }catch(e){
+      chatgptStatus=null;drawChatgptStatus();
+      if(show)toast(e.message||String(e));return null;
+    }
+  }
+  function scheduleChatgptPoll(){
+    if(chatgptPoll){clearInterval(chatgptPoll);chatgptPoll=null}
+    if(!chatgptStatus||chatgptStatus.state!=="connecting")return;
+    let ticks=0;
+    chatgptPoll=setInterval(async()=>{
+      ticks++;
+      const s=await loadChatgptStatus(false);
+      if(!s||s.state!=="connecting"||ticks>60){
+        if(chatgptPoll){clearInterval(chatgptPoll);chatgptPoll=null}
+        if(s&&s.connected){toast("ChatGPT connected");loadModels(true);loadConnectors(true)}
+      }
+    },2500);
+  }
+  async function chatgptLogin(mode){
+    try{
+      toast("Starting ChatGPT "+(mode==="device"?"device code":"browser")+" login…");
+      const r=await fetchJSON("/v1/connectors/chatgpt/auth/login",{method:"POST",headers:headers(),
+        body:JSON.stringify({mode})},20000);
+      chatgptStatus=await r.json();drawChatgptStatus();
+      if(mode==="device"){
+        if(chatgptStatus.verification_url)openExternal(chatgptStatus.verification_url);
+        if(chatgptStatus.user_code)toast("Code: "+chatgptStatus.user_code+" — enter it in the browser");
+      }else if(chatgptStatus.authorization_url){
+        openExternal(chatgptStatus.authorization_url);toast("Finish sign-in in your browser");
+      }
+      scheduleChatgptPoll();
+    }catch(e){toast(e.message||String(e))}
+  }
+  async function chatgptCancel(){
+    try{
+      chatgptStatus=await (await fetchJSON("/v1/connectors/chatgpt/auth/cancel",{method:"POST",headers:headers()},15000)).json();
+      if(chatgptPoll){clearInterval(chatgptPoll);chatgptPoll=null}
+      drawChatgptStatus();toast("ChatGPT login cancelled");
+    }catch(e){toast(e.message||String(e))}
+  }
+  async function chatgptDisconnect(){
+    if(!confirm("Disconnect ChatGPT / OpenAI from this MJA server?"))return;
+    try{
+      chatgptStatus=await (await fetchJSON("/v1/connectors/chatgpt/auth",{method:"DELETE",headers:headers()},15000)).json();
+      drawChatgptStatus();loadModels(true);loadConnectors(true);toast("ChatGPT disconnected");
+    }catch(e){toast(e.message||String(e))}
+  }
+  function drawGeminiStatus(){
+    const st=connectorStatus.gemini;const ready=!!(st&&st.configured);
+    if($("geminiStatus"))$("geminiStatus").textContent=ready?"Enabled · Gemini models available":"Not enabled";
+    if($("geminiDot"))$("geminiDot").classList.toggle("on",ready);
+    if($("geminiDetail"))$("geminiDetail").textContent=ready
+      ?"Gemini key is saved in the local MJA server. Refresh models if it does not appear yet."
+      :"Create a free key at Google AI Studio, paste it above, then save & enable.";
+  }
+  async function enableGemini(){
+    const input=$("geminiKey");const v=input?input.value.trim():"";
+    if(!v){toast("Paste a Gemini API key first");return}
+    try{
+      toast("Saving Gemini key…");
+      const d=await (await fetchJSON("/v1/connectors/gemini/setup",{method:"POST",headers:headers(),
+        body:JSON.stringify({api_key:v})},30000)).json();
+      const result=d.result||{};
+      if(result.applied===false){
+        toast("Gemini key rejected: "+((result.errors||[]).join("; ")||"check the key"));
+        return;
+      }
+      if(input)input.value="";
+      toast("Gemini enabled; refreshing models");
+      setTimeout(()=>{loadConnectors(true);loadModels(true)},1500);
+    }catch(e){toast(e.message||String(e))}
+  }
+  function drawDuckStatus(){
+    const st=connectorStatus.duckai;const ready=!!(st&&st.configured);
+    if($("duckaiStatus"))$("duckaiStatus").textContent=ready?"Ready · no key required":"Not available on this server";
+    if($("duckaiDot"))$("duckaiDot").classList.toggle("on",ready);
+  }
+  function renderProviders(data){
+    const groups={};data.forEach(m=>{const k=(m.owned_by||"other").split("/")[0];groups[k]=(groups[k]||0)+1});
+    $("providerList").innerHTML=Object.keys(groups).map(k=>
+      '<span class="pill">'+esc(k)+' · '+groups[k]+'</span>').join("")||"<p>No models</p>";
+  }
+  async function check(){
+    try{const r=await fetchJSON("/health",{headers:headers()},6000);setDot(r.ok)}
+    catch(e){setDot(false)}
+  }
+
+  /* ---------- markdown-lite ---------- */
+  function render(text){
+    text=String(text||"");let out="",i=0;
+    while(i<text.length){
+      const f=text.indexOf("```",i);
+      if(f<0){out+=esc(text.slice(i));break}
+      out+=esc(text.slice(i,f));
+      const nl=text.indexOf("\n",f);if(nl<0){out+=esc(text.slice(f));break}
+      const end=text.indexOf("```",nl+1);if(end<0){out+=esc(text.slice(f));break}
+      const lang=text.slice(f+3,nl).trim();const code=text.slice(nl+1,end);
+      out+='<pre><button class="copy" data-code="'+encodeURIComponent(code)+'">copy</button>'+
+           (lang?'<span style="color:var(--accent2)">'+esc(lang)+'</span>\n':'')+esc(code)+'</pre>';
+      i=end+3;
+    }
+    return out;
+  }
+  function copyText(t){
+    if(navigator.clipboard)navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t));else fallbackCopy(t);
+  }
+  function fallbackCopy(t){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();
+    try{document.execCommand("copy")}catch(e){}a.remove()}
+  document.addEventListener("click",e=>{
+    const c=e.target.closest(".copy");if(c){copyText(decodeURIComponent(c.dataset.code||""));
+      c.textContent="copied!";setTimeout(()=>c.textContent="copy",1200)}
+    const a=e.target.closest(".artbtn");if(a){const idx=+a.dataset.i;
+      addArtifact(a.dataset.title||"Answer",history[idx]?history[idx].content:"")}
+  });
+
+  /* ---------- chat ---------- */
+  function drawChat(){
+    const log=$("chatLog");log.innerHTML="";
+    if(!history.length){
+      log.innerHTML='<div class="empty"><h2>Hi, I\'m your MJA Assistant 👋</h2>'+esc(prof.name)+
+        ' · '+esc(modeName)+' mode.<br>I can chat, help with code, and talk about your notes.</div>';
+      $("chips").style.display="flex";return;
+    }
+    $("chips").style.display="none";
+    history.forEach((m,i)=>{
+      const d=document.createElement("div");d.className="msg "+m.role;
+      if(m.role==="tool"){
+        d.className="msg bot toolresult";
+        d.innerHTML='<div class="who">🔧 Tool result</div>';
+        const media=m.media;
+        if(media&&media.url&&/^https?:\/\//.test(media.url)){
+          const safe=esc(media.url).replace(/"/g,"&quot;");
+          const dl=esc(media.url+(media.url.indexOf("?")>=0?"&":"?")+"download=1").replace(/"/g,"&quot;");
+          const box=document.createElement("div");box.className="media-card";
+          if(media.type==="image"){
+            box.innerHTML='<b>🖼 '+esc(media.title||"Generated image")+'</b><img src="'+safe+'" alt="Generated image"><div class="flex"><a href="'+safe+'" target="_blank" rel="noreferrer">Open image</a><a href="'+dl+'" download="mja-image" target="_blank" rel="noreferrer">Download image</a></div>';
+          }else if(media.type==="video"){
+            box.innerHTML='<b>🎬 '+esc(media.title||"Generated video")+'</b><video controls playsinline src="'+safe+'"></video><div class="flex"><a href="'+safe+'" target="_blank" rel="noreferrer">Open video</a><a href="'+dl+'" download="mja-video" target="_blank" rel="noreferrer">Download video</a></div>';
+          }else{
+            box.innerHTML='<a href="'+safe+'" target="_blank" rel="noreferrer">'+esc(media.title||"Open media")+'</a> <a href="'+dl+'" download>Download</a>';
+          }
+          d.appendChild(box);
+        }
+        const det=document.createElement("div");det.className="thinking";
+        det.innerHTML='<details><summary>Details</summary><div>'+esc(String(m.content||"").slice(0,1200))+'</div></details>';
+        d.appendChild(det);
+        log.appendChild(d);return;
+      }
+      d.innerHTML='<div class="who">'+(m.role==="user"?"You":esc(prof.name)+" · MJA")+'</div>';
+      if(m.role==="assistant"&&caps.thinking&&m.reasoning){
+        const th=document.createElement("div");th.className="thinking";
+        th.innerHTML='<details open><summary>💭 Thinking</summary><div>'+render(m.reasoning)+'</div></details>';
+        d.appendChild(th);
+      }
+      if(m.role==="assistant"&&caps.live&&m.tool_calls){
+        const tc=document.createElement("div");tc.className="thinking";
+        tc.innerHTML='<details><summary>🛠 Tools used</summary><div>'+
+          m.tool_calls.map(c=>esc((c.function&&c.function.name)||"tool")).join(", ")+'</div></details>';
+        d.appendChild(tc);
+      }
+      d.insertAdjacentHTML("beforeend",render(m.content));
+      if(m.role==="assistant"&&caps.artifacts&&m.content){
+        const t=document.createElement("div");t.className="msgtools";
+        t.innerHTML='<button class="minibtn artbtn" data-i="'+i+'" data-title="Chat answer '+i+'">💾 Artifact</button>';
+        d.appendChild(t);
+      }
+      log.appendChild(d);
+    });
+    log.scrollTop=log.scrollHeight;
+  }
+  function saveChat(){save(K.chat,history.slice(-60))}
+  function pushRecent(){
+    if(!history.length)return;
+    const title=(history[0].content||"Chat").slice(0,60);
+    recents.unshift({title:title,ts:Date.now(),messages:history.slice()});
+    recents=recents.slice(0,25);save(K.recents,recents);drawRecents();drawStats();
+  }
+  function buildMessages(){
+    const usable=history.filter(m=>caps.live||(m.role!=="tool"&&!m.tool_calls));
+    return usable.filter(m=>m.role==="tool"||m.content||m.tool_calls).map(m=>{
+      const out={role:m.role,content:m.content||""};
+      if(m.role==="assistant"&&m.tool_calls)out.tool_calls=m.tool_calls;
+      if(m.role==="tool"&&m.tool_call_id)out.tool_call_id=m.tool_call_id;
+      return out;
+    });
+  }
+  const WRITE_TOOLS=["google_drive_create_file","spotify_create_playlist","shopify_create_product",
+    "whatsapp_send_message","pollinations_generate_video"];
+  async function invokeConnectorTool(name,args){
+    if(WRITE_TOOLS.indexOf(name)>=0){
+      const ok=confirm("Allow MJA to run "+name+"?\n\n"+JSON.stringify(args).slice(0,300));
+      if(!ok)return {ok:false,error:"User denied this tool call"};
+    }
+    const r=await fetchJSON("/v1/connectors/invoke",{method:"POST",headers:headers(),
+      body:JSON.stringify({tool:name,arguments:args})},300000);
+    return await r.json();
+  }
+  async function consumeStream(payload){
+    const r=await streamChat(payload,controller.signal);
+    const reader=r.body.getReader(),dec=new TextDecoder();let buf="";const calls={};
+    while(true){
+      const {done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});let i;
+      while((i=buf.indexOf("\n"))>=0){
+        const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+        if(!line.startsWith("data:"))continue;
+        const data=line.slice(5).trim();if(data==="[DONE]")continue;
+        try{
+          const o=JSON.parse(data),dl=o.choices&&o.choices[0]&&o.choices[0].delta;
+          if(!dl)continue;
+          const msg=history[history.length-1];let changed=false;
+          if(dl.reasoning_content){msg.reasoning=(msg.reasoning||"")+dl.reasoning_content;changed=true}
+          if(dl.content){msg.content+=dl.content;changed=true}
+          if(dl.tool_calls){
+            dl.tool_calls.forEach(tc=>{
+              const idx=tc.index||0;
+              const call=calls[idx]||{id:"",type:"function",function:{name:"",arguments:""}};
+              if(tc.id)call.id=tc.id;
+              if(tc.type)call.type=tc.type;
+              if(tc.function){
+                if(tc.function.name)call.function.name+=tc.function.name;
+                if(tc.function.arguments)call.function.arguments+=tc.function.arguments;
+              }
+              calls[idx]=call;
+            });
+          }
+          if(changed)drawChat();
+        }catch(_){}
+      }
+    }
+    return Object.keys(calls).sort((a,b)=>Number(a)-Number(b)).map(k=>calls[k])
+      .filter(c=>c.function&&c.function.name);
+  }
+  function duckaiWebIntent(value){
+    const text=String(value||"").trim().replace(/^(?:hey|ok|please)\s+/i,"");
+    if(!/\bduck\.?ai\b/i.test(text))return null;
+    if(duckaiImagePrompt(text))return null;
+    if(/^(?:use|open|go(?:\s+to)?|launch|take me to|visit)\s+(?:the\s+)?duck\.?ai(?:\s+web)?\s*$/i.test(text)){
+      return {open:true,query:""};
+    }
+    const m=text.match(/^(?:use|using|search|search with|look up with|ask|try)\s+(?:the\s+)?duck\.?ai(?:\s+web)?(?:\s+(?:search|to\s+search))?\s*(?:for|about|on|:)?\s*(.+)$/i);
+    if(m&&m[1]&&m[1].trim())return {open:false,query:m[1].trim()};
+    if(/\b(?:web\s+search|search\s+the\s+web|look\s+up)\b/i.test(text)){
+      const q=text.replace(/^(?:use|using|please)\s+/i,"")
+        .replace(/\b(?:with|using|via|on)\s+(?:the\s+)?duck\.?ai(?:\s+web)?\b/gi,"")
+        .replace(/\b(?:web\s+search|search\s+the\s+web|look\s+up|for|about)\b/gi,"")
+        .replace(/\s+/g," ").trim();
+      if(q)return {open:false,query:q};
+    }
+    return null;
+  }
+  function duckaiImagePrompt(value){
+    const text=String(value||"").trim();
+    if(!text)return "";
+    const make=/\b(craet|creat(e|ing)?|mak(e|ing)|generat(e|ing)|draw|paint(ing)?|render(ing)?|image|imger|picture|pic|photo)\b/i;
+    const picture=/\b(imger|image|img|pictures?|pics?|photos?|artwork|illustration|wallpaper)\b/i;
+    if(!make.test(text)||!picture.test(text))return "";
+    if(/\b(video|clip|movie|film)\b/i.test(text)&&!/\b(image|imger|picture|pic|photo|artwork|illustration)\b/i.test(text))return "";
+    return text;
+  }
+  async function send(prefill){
+    if(busy)return;
+    let text=(prefill||$("chatInput").value).trim();
+    if(attachments.length){
+      const atts=attachments.map(a=>"["+a.name+"]\n"+a.text).join("\n\n");
+      text=(text?text+"\n\n":"")+"Attached files:\n"+atts;
+    }
+    if(!text)return;
+    $("chatInput").value="";attachments=[];drawAttach();
+    history.push({role:"user",content:text});history.push({role:"assistant",content:"",reasoning:""});
+    busy=true;drawChat();$("sendBtn").disabled=true;$("stopBtn").style.display="";
+    controller=new AbortController();
+    try{
+      const assistant=history[history.length-1];
+      const duckReady=!!(connectorStatus.duckai&&connectorStatus.duckai.configured);
+      let handledDirect=false;
+      const webIntent=duckReady?duckaiWebIntent(text):null;
+      if(webIntent){
+        try{
+          if(webIntent.open){
+            openExternal("https://duck.ai/");
+            assistant.content="Opened Duck.ai web. To search from MJA, say “Use Duck.ai web search for your question”.";
+            handledDirect=true;drawChat();
+          }else{
+            assistant.content="🔎 Searching the web with Duck.ai…";drawChat();
+            const result=await invokeConnectorTool("duckai_web_search",{query:webIntent.query});
+            if(result&&result.ok){
+              assistant.content=(result.provider==="duck.ai"?"Duck.ai web result:\n\n":"Duck.ai was unavailable; DuckDuckGo instant answer:\n\n")+
+                String(result.answer||"");
+              if(result.search_url)assistant.content+="\n\n"+result.search_url;
+              history.push({role:"tool",tool_call_id:"duckai_web_"+Date.now(),content:JSON.stringify(result)});
+              handledDirect=true;drawChat();
+            }else{
+              assistant.content="Duck.ai web search failed"+(result&&result.detail?": "+result.detail:"")+".";
+              handledDirect=true;drawChat();
+            }
+          }
+        }catch(e){
+          assistant.content="Duck.ai web search failed: "+((e&&e.message)||e);
+          handledDirect=true;drawChat();
+        }
+      }
+      const duckPrompt=!handledDirect&&duckReady?duckaiImagePrompt(text):"";
+      if(duckPrompt){
+        try{
+          assistant.content="🦆 Creating your image with Duck.ai…";drawChat();
+          const result=await invokeConnectorTool("duckai_generate_image",{prompt:duckPrompt,fallback:false});
+          if(result&&result.ok&&result.media){
+            assistant.content=result.provider==="duck.ai"
+              ?"Here is your image from Duck.ai. Use Download image below to save it."
+              :"Duck.ai was unavailable, so MJA used a clearly labeled fallback image provider.";
+            history.push({role:"tool",tool_call_id:"duckai_"+Date.now(),
+              content:JSON.stringify(result),media:result.media});
+            handledDirect=true;drawChat();
+          }else{
+            assistant.content="Duck.ai image failed"+(result&&result.detail?": "+result.detail:"")+". No fallback provider was used.";
+            handledDirect=true;drawChat();
+          }
+        }catch(e){
+          assistant.content="Duck.ai image failed: "+((e&&e.message)||e)+". No fallback provider was used.";
+          toast("Duck.ai image failed");
+          handledDirect=true;drawChat();
+        }
+      }
+      if(!handledDirect){
+        const activeTools=activeConnectorTools();
+        const rounds=caps.live&&activeTools.length?4:1;
+        for(let round=0;round<rounds;round++){
+          if(round>0)history.push({role:"assistant",content:"",reasoning:""});
+          const payload={model:chosenModel(),messages:[{role:"system",content:sysPrompt()}]
+            .concat(buildMessages()),stream:true};
+          if(caps.live&&activeTools.length&&round<rounds-1)payload.tools=activeTools;
+          const calls=await consumeStream(payload);
+          if(!calls.length||!caps.live)break;
+          const current=history[history.length-1];current.tool_calls=calls;drawChat();
+          for(const call of calls){
+            let args={};try{args=JSON.parse(call.function.arguments||"{}")}catch(_){}
+            toast("Running "+call.function.name);
+            const result=await invokeConnectorTool(call.function.name,args);
+            const entry={role:"tool",tool_call_id:call.id||("call_"+Date.now()+"_"+Math.random().toString(36).slice(2)),
+              content:JSON.stringify(result)};
+            if(result&&result.media)entry.media=result.media;
+            history.push(entry);
+          }
+          drawChat();
+        }
+        const last=history[history.length-1];
+        if(!caps.streaming&&last.content==="")last.content="(no content)";
+      }
+    }catch(e){
+      const m=(e&&e.name==="AbortError")?"":("\n\n⚠ "+((e&&e.message)||e));
+      const target=history[history.length-1];
+      if(target&&target.role==="assistant"){
+        target.content+=m;
+        if(target.tool_calls)delete target.tool_calls;
+      }else history.push({role:"assistant",content:m});
+      drawChat();showError(e.message||String(e));
+    }finally{
+      busy=false;controller=null;$("sendBtn").disabled=false;$("stopBtn").style.display="none";
+      saveChat();if(history.length>1)pushRecent();drawStats();
+    }
+  }
+  $("sendBtn").onclick=()=>send();
+  $("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+  $("stopBtn").onclick=()=>{if(controller)controller.abort()};
+  $("newChat").onclick=()=>{if(history.length)pushRecent();history=[];saveChat();drawChat()};
+  $("refreshModels").onclick=()=>loadModels(true);
+  document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>send(c.textContent));
+
+  /* ---------- attachments (+) ---------- */
+  function drawAttach(){
+    const b=$("attachBar");b.innerHTML="";
+    attachments.forEach((a,i)=>{const s=document.createElement("span");s.className="atchip";
+      s.innerHTML=esc(a.name)+" <b>×</b>";s.onclick=()=>{attachments.splice(i,1);drawAttach()};b.appendChild(s)});
+    b.classList.toggle("show",attachments.length>0);
+  }
+  $("attachBtn").onclick=()=>{if(!tools.attach){toast("File attach is off in Tool plug");return}$("fileInput").click()};
+  $("fileInput").onchange=e=>{
+    const files=Array.from(e.target.files||[]);let left=files.length;
+    if(!left)return;
+    files.forEach(f=>{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        let txt=String(reader.result||"");
+        if(/^image\//.test(f.type))txt="[Image attachment: "+f.name+" — image preview is not sent to text models.]";
+        attachments.push({name:f.name,size:f.size,text:txt.slice(0,12000)});
+        if(--left===0){drawAttach();toast(files.length+" file(s) attached")}
+      };
+      reader.onerror=()=>{if(--left===0)drawAttach()};
+      if(/^image\//.test(f.type))reader.readAsDataURL(f);else reader.readAsText(f);
+    });
+    e.target.value="";
+  };
+
+  /* ---------- voice ---------- */
+  let recognizing=false;
+  $("voiceBtn").onclick=()=>{
+    if(!tools.voice){toast("Voice input is off in Tool plug");return}
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){toast("Voice input not supported in this WebView");return}
+    if(recognizing){toast("Already listening");return}
+    try{
+      const r=new SR();r.lang="en-US";r.interimResults=false;r.maxAlternatives=1;
+      recognizing=true;$("voiceBtn").textContent="🔴";
+      r.onresult=ev=>{const t=ev.results[0][0].transcript;$("chatInput").value+=($("chatInput").value?" ":"")+t;
+        toast("Voice added — press Send")};
+      r.onerror=ev=>toast("Voice error: "+(ev.error||"unknown"));
+      r.onend=()=>{recognizing=false;$("voiceBtn").textContent="🎤"};
+      r.start();toast("Listening… speak now");
+    }catch(e){recognizing=false;$("voiceBtn").textContent="🎤";toast("Voice failed: "+e.message)}
+  };
+
+  /* ---------- code ---------- */
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{
+    if(!caps.code){toast("Code actions are off in Capabilities");return}
+    const src=$("codeInput").value.trim();if(!src){toast("Paste some code first");return}
+    const out=$("codeResult");out.textContent="Thinking…";
+    try{
+      const r=await fetchJSON("/v1/chat/completions",{method:"POST",headers:headers(),
+        body:JSON.stringify({model:chosenModel(),messages:[
+          {role:"system",content:sysPrompt()},
+          {role:"user",content:b.dataset.act+"\n\n```\n"+src+"\n```"}]})},120000);
+      const d=await r.json();const txt=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+      out.innerHTML=render(txt||"No answer returned.");
+    }catch(e){out.textContent="Error: "+e.message;showError(e.message)}
+  });
+  function addArtifact(title,content){
+    if(!content)return;
+    artifacts.unshift({title:title||"Artifact",content:content,ts:Date.now()});
+    artifacts=artifacts.slice(0,40);save(K.artifacts,artifacts);drawArtifacts();drawStats();
+    toast("Saved as artifact");
+  }
+  $("codeArtifact").onclick=()=>addArtifact("Code result",$("codeResult").innerText);
+
+  /* ---------- notes ---------- */
+  function saveNotes(){save(K.notes,notes)}
+  function drawNotes(q){
+    const list=$("noteList");list.innerHTML="";const term=(q||"").toLowerCase();
+    const items=notes.filter(n=>!term||(n.title+" "+n.body).toLowerCase().includes(term));
+    if(!items.length){list.innerHTML='<div class="empty">No notes yet. Tap + New.</div>';return}
+    items.forEach(n=>{const d=document.createElement("div");d.className="note";
+      d.innerHTML="<b>"+esc(n.title||"Untitled")+"</b><span>"+esc(n.body||"")+"</span>";
+      d.onclick=()=>openNote(n);list.appendChild(d)});
+  }
+  function openNote(n){editingNote=n;$("noteTitle").value=n.title||"";$("noteBody").value=n.body||"";
+    $("noteListPane").classList.add("flex-off");$("noteEditor").classList.add("active")}
+  function closeNote(){editingNote=null;$("noteListPane").classList.remove("flex-off");
+    $("noteEditor").classList.remove("active");drawNotes($("noteSearch").value)}
+  $("newNote").onclick=()=>{const n={id:Date.now(),title:"",body:""};notes.unshift(n);saveNotes();openNote(n)};
+  $("noteSearch").oninput=e=>drawNotes(e.target.value);
+  $("noteSave").onclick=()=>{if(!editingNote)return;editingNote.title=$("noteTitle").value.trim();
+    editingNote.body=$("noteBody").value;saveNotes();toast("Saved");closeNote()};
+  $("noteDelete").onclick=()=>{if(!editingNote)return;notes=notes.filter(n=>n!==editingNote);
+    saveNotes();closeNote();toast("Deleted");drawStats()};
+  $("noteBack").onclick=closeNote;
+  $("noteAsk").onclick=()=>{const body=$("noteBody").value.trim();if(!body){toast("Write something first");return}
+    if(!editingNote){editingNote={id:Date.now(),title:"",body:""};notes.unshift(editingNote);saveNotes()}
+    editingNote.title=$("noteTitle").value.trim();editingNote.body=body;saveNotes();
+    switchView("chat");send("Here are my notes. Give a short summary and 2 practical next steps:\n\n"+body)};
+
+  /* ---------- recents / artifacts ---------- */
+  function time(ts){try{return new Date(ts).toLocaleString()}catch(e){return ""}}
+  function drawRecents(){
+    const box=$("recentList");box.innerHTML="";
+    if(!recents.length){box.innerHTML='<div class="empty">No recent chats yet.</div>';return}
+    recents.forEach((r,i)=>{
+      const d=document.createElement("div");d.className="listitem";
+      d.innerHTML="<b>"+esc(r.title)+"</b><span>"+time(r.ts)+"</span>";
+      const open=document.createElement("button");open.className="btn ghost sm";open.textContent="Open";
+      open.onclick=()=>{history=r.messages.slice();saveChat();drawChat();switchView("chat");toast("Chat opened")};
+      const del=document.createElement("button");del.className="btn ghost sm";del.textContent="Delete";
+      del.onclick=()=>{recents.splice(i,1);save(K.recents,recents);drawRecents()};
+      const row=document.createElement("div");row.className="flex";row.style.marginTop="8px";
+      row.appendChild(open);row.appendChild(del);d.appendChild(row);box.appendChild(d);
+    });
+  }
+  function drawArtifacts(){
+    const box=$("artifactList");box.innerHTML="";
+    if(!artifacts.length){box.innerHTML='<div class="empty">No artifacts yet. Save an answer from chat or code.</div>';return}
+    artifacts.forEach((a,i)=>{
+      const d=document.createElement("div");d.className="listitem";
+      d.innerHTML="<b>📦 "+esc(a.title)+"</b><span>"+time(a.ts)+" · "+esc(a.content.slice(0,100))+"…</span>";
+      const open=document.createElement("button");open.className="btn ghost sm";open.textContent="View";
+      open.onclick=()=>{$("codeResult").innerHTML=render(a.content);switchView("code")};
+      const cp=document.createElement("button");cp.className="btn ghost sm";cp.textContent="Copy";
+      cp.onclick=()=>{copyText(a.content);toast("Copied")};
+      const del=document.createElement("button");del.className="btn ghost sm";del.textContent="Delete";
+      del.onclick=()=>{artifacts.splice(i,1);save(K.artifacts,artifacts);drawArtifacts();drawStats()};
+      const row=document.createElement("div");row.className="flex";row.style.marginTop="8px";
+      row.appendChild(open);row.appendChild(cp);row.appendChild(del);d.appendChild(row);box.appendChild(d);
+    });
+  }
+  $("clearRecents").onclick=()=>{if(confirm("Clear all recent chats?")){recents=[];save(K.recents,recents);drawRecents()}};
+  $("clearArtifacts").onclick=()=>{if(confirm("Clear all artifacts?")){artifacts=[];save(K.artifacts,artifacts);drawArtifacts();drawStats()}};
+
+  /* ---------- toggles ---------- */
+  function drawToggles(){
+    const cl=$("capList"),tl=$("toolList");
+    cl.innerHTML="";CAPS.forEach(c=>{
+      const d=document.createElement("div");d.className="card";
+      d.innerHTML='<div class="row"><div><h3 style="margin:0">'+c[1]+'</h3><p>'+c[2]+'</p></div>'+
+        '<label class="switch"><input type="checkbox" data-cap="'+c[0]+'"'+(caps[c[0]]?" checked":"")+'><span class="slider"></span></label></div>';
+      cl.appendChild(d)});
+    cl.querySelectorAll("[data-cap]").forEach(x=>x.onchange=()=>{caps[x.dataset.cap]=x.checked;save(K.caps,caps);applyToggles();drawChat()});
+    tl.innerHTML="";TOOLS.forEach(t=>{
+      const d=document.createElement("div");d.className="card";
+      d.innerHTML='<div class="row"><div><h3 style="margin:0">'+t[1]+'</h3><p>'+t[2]+'</p></div>'+
+        '<label class="switch"><input type="checkbox" data-tool="'+t[0]+'"'+(tools[t[0]]?" checked":"")+'><span class="slider"></span></label></div>';
+      tl.appendChild(d)});
+    tl.querySelectorAll("[data-tool]").forEach(x=>x.onchange=()=>{tools[x.dataset.tool]=x.checked;save(K.tools,tools);applyToggles()});
+    drawPlugs();
+  }
+  function drawPlugs(){
+    const box=$("plugList");if(!box)return;
+    box.innerHTML="";
+    PLUGS.forEach(p=>{
+      const d=document.createElement("div");d.className="listitem";
+      d.innerHTML="<b>"+esc(p[0])+"</b><span>"+esc(p[1])+" Reference in chat; direct access needs credentials or a connector.</span>";
+      box.appendChild(d);
+    });
+  }
+  const SERVER_CONNECTORS={
+    "Google Drive":"google_drive","Duck.ai":"duckai","Spotify":"spotify","Shopify":"shopify",
+    "WhatsApp by Agent Messenger":"whatsapp","Pollinations AI":"pollinations",
+    "OpenCode Free":"opencode"
+  };
+  function serverConnectorId(name){return SERVER_CONNECTORS[name]||""}
+  function serverCredentialValues(name,value){
+    const v=String(value||"").trim();
+    if(name==="Shopify"){
+      const parts=v.split("|");
+      return parts.length>1?{shop:parts[0].trim(),access_token:parts.slice(1).join("|").trim()}:{access_token:v};
+    }
+    if(name==="WhatsApp by Agent Messenger"){
+      const parts=v.split("|");
+      return parts.length>1?{phone_number_id:parts[0].trim(),access_token:parts.slice(1).join("|").trim()}:{access_token:v};
+    }
+    if(name==="Google Drive"||name==="Spotify"){
+      const parts=v.split("|");
+      if(parts.length>=3)return {client_id:parts[0].trim(),client_secret:parts[1].trim(),access_token:parts.slice(2).join("|").trim()};
+      if(parts.length===2)return {client_id:parts[0].trim(),client_secret:parts[1].trim()};
+      return {access_token:v};
+    }
+    if(name==="Pollinations AI"||name==="OpenCode Free")return {api_key:v};
+    return {};
+  }
+  async function pushConnectorKeys(){
+    const names=Object.keys(connectors).filter(n=>SERVER_CONNECTORS[n]);
+    if(!names.length){toast("No live connector keys saved");return}
+    try{
+      for(const name of names){
+        const values=serverCredentialValues(name,connectors[name]);
+        if(!Object.keys(values).length)continue;
+        if(name==="OpenCode Free"){
+          await fetchJSON("/v1/connectors/opencode/setup",{method:"POST",headers:headers(),
+            body:JSON.stringify({api_key:values.api_key})},30000);
+          toast("OpenCode enabled; refreshing models");
+          setTimeout(()=>loadModels(true),1500);
+          continue;
+        }
+        await fetchJSON("/v1/connectors/credentials",{method:"POST",headers:headers(),
+          body:JSON.stringify({connector:SERVER_CONNECTORS[name],values})},15000);
+      }
+      await loadConnectors(true);toast("Keys pushed to server");
+    }catch(e){toast(e.message||String(e))}
+  }
+  function drawConnectorSettings(){
+    const box=$("connectorSettingList");if(!box)return;
+    box.innerHTML="";
+    PLUGS.filter(p=>p[0]!=="ChatGPT / OpenAI"&&p[0]!=="Google AI / Gemini"&&p[0]!=="Duck.ai").forEach(p=>{
+      const name=p[0],saved=!!connectors[name],id=serverConnectorId(name);
+      const st=id?connectorStatus[id]:null;
+      const label=id?(st&&st.configured?" · live on server":" · not live yet"):"";
+      const d=document.createElement("div");d.className="listitem";
+      d.innerHTML="<b>"+esc(name)+"</b><span>"+esc(p[1])+" · "+(saved?"Credential saved locally":"No credential saved")+esc(label)+"</span>"+
+        "<div class='flex' style='margin-top:8px'>"+
+        "<input type='password' placeholder='API key / token' data-conn='"+esc(name)+"' style='flex:1;min-width:150px'>"+
+        "<button class='btn sm' data-save-conn='"+esc(name)+"'>Save</button>"+
+        (saved?"<button class='btn ghost sm' data-clear-conn='"+esc(name)+"'>Clear</button>":"")+
+        (id&&(name==="Google Drive"||name==="Spotify")?"<button class='btn ghost sm' data-oauth='"+esc(name)+"'>Start login</button>":"")+
+        ((name==="OpenCode Free"||name==="Pollinations AI")?"<button class='btn ghost sm' data-openkey='"+esc(name)+"'>Get key</button>":"")+
+        "</div>";
+      box.appendChild(d);
+    });
+    box.querySelectorAll("[data-save-conn]").forEach(b=>b.onclick=()=>{
+      const name=b.dataset.saveConn;
+      const input=Array.from(box.querySelectorAll("[data-conn]")).find(x=>x.dataset.conn===name);
+      const v=input?input.value.trim():"";
+      if(v){connectors[name]=v;toast(name+" credential saved")}
+      else{delete connectors[name];toast(name+" credential cleared")}
+      save(K.connectors,connectors);drawConnectorSettings();drawStats();
+    });
+    box.querySelectorAll("[data-clear-conn]").forEach(b=>b.onclick=()=>{
+      delete connectors[b.dataset.clearConn];save(K.connectors,connectors);
+      toast(b.dataset.clearConn+" credential cleared");drawConnectorSettings();drawStats();
+    });
+    box.querySelectorAll("[data-oauth]").forEach(b=>b.onclick=async()=>{
+      try{
+        const r=await fetchJSON("/v1/connectors/"+serverConnectorId(b.dataset.oauth)+"/oauth/start",{headers:headers()},15000);
+        const d=await r.json();const w=window.open(d.url,"_blank");
+        if(!w)window.location.href=d.url;
+      }catch(e){toast(e.message||String(e))}
+    });
+    box.querySelectorAll("[data-openkey]").forEach(b=>b.onclick=()=>{
+      const urls={"OpenCode Free":"https://opencode.ai/auth",
+        "Pollinations AI":"https://enter.pollinations.ai/keys",
+        "Google AI / Gemini":"https://aistudio.google.com/apikey"};
+      openExternal(urls[b.dataset.openkey]||"https://opencode.ai/auth");
+    });
+    drawChatgptStatus();drawGeminiStatus();drawDuckStatus();
+  }
+  function applyToggles(){
+    $("attachBtn").style.display=tools.attach?"":"none";
+    $("voiceBtn").style.display=tools.voice?"":"none";
+    $("modelSel").style.display=tools.model?"":"none";
+    $("refreshModels").style.display=tools.model?"":"none";
+    $("codeArtifact").style.display=tools.artifact?"":"none";
+    document.querySelector('[data-go="recents"]').style.display=tools.recent?"":"none";
+  }
+  const MODEDESC={General:"Everyday questions, writing, planning.",Coding:"Code explanation, debugging, tests.",
+    Creative:"Ideas, stories, brainstorming.",Focused:"Short, direct answers."};
+  function drawModes(){
+    const box=$("modeList");box.innerHTML="";
+    Object.keys(MODES).forEach(name=>{
+      const d=document.createElement("div");d.className="card"+(name===modeName?" ":" ");
+      d.innerHTML='<div class="row"><div><h3 style="margin:0">'+name+(name===modeName?" ✓":"")+'</h3><p>'+MODEDESC[name]+'</p></div>'+
+        '<button class="btn sm">Use</button></div>';
+      d.querySelector("button").onclick=()=>{modeName=name;save(K.mode,name);$("modeLabel").textContent=name+" mode";
+        drawModes();drawChat();toast(name+" mode active")};
+      box.appendChild(d)});
+  }
+
+  /* ---------- profile / stats ---------- */
+  function drawProfile(){
+    $("profName").value=prof.name||"";$("profTag").value=prof.tag||"";
+    $("profNameView").textContent=prof.name||"You";$("profTagView").textContent=prof.tag||"";
+    $("drawerSub").textContent=prof.name||"Your daily AI";drawStats();
+  }
+  function drawStats(){
+    const msgs=ls(K.chat,[]).length;$("profStats").innerHTML=
+      '<span class="pill">💬 '+msgs+' chat messages</span>'+
+      '<span class="pill">🕘 '+recents.length+' recent chats</span>'+
+      '<span class="pill">📦 '+artifacts.length+' artifacts</span>'+
+      '<span class="pill">📝 '+notes.length+' notes</span>'+
+      '<span class="pill">🤖 '+modelList.length+' models</span>'+
+      '<span class="pill">🔌 '+PLUGS.length+' plugs</span>'+
+      '<span class="pill">🔐 '+Object.keys(connectors).length+' keys</span>';
+  }
+  $("profSave").onclick=()=>{prof={name:$("profName").value.trim()||"You",tag:$("profTag").value.trim()};
+    save(K.profile,prof);drawProfile();drawChat();toast("Profile saved")};
+  $("settingsBtn").onclick=()=>{$("setUrl").value=url();$("setModel").value=model();$("setToken").value=token();switchView("settings")};
+  $("profileBtn").onclick=()=>switchView("profile");
+  $("setSave").onclick=()=>{save(K.url,$("setUrl").value.trim().replace(/\/+$/,"")||"http://127.0.0.1:8082");
+    save(K.model,$("setModel").value.trim());save(K.token,$("setToken").value.trim());
+    workingUrl="";toast("Settings saved");loadModels(true);check()};
+  $("setTest").onclick=()=>loadModels(true);
+  $("connTest").onclick=()=>{workingUrl="";loadModels(true)};
+  $("openConnectorSettings").onclick=()=>switchView("connectorsettings");
+  $("pushConnectorKeys").onclick=pushConnectorKeys;
+  $("refreshConnectorStatus").onclick=()=>{loadConnectors(true);loadChatgptStatus(false)};
+  document.querySelectorAll("[data-chatgpt-login]").forEach(b=>b.onclick=()=>chatgptLogin(b.dataset.chatgptLogin));
+  $("chatgptRefresh").onclick=()=>loadChatgptStatus(true);
+  $("chatgptCancel").onclick=chatgptCancel;
+  $("chatgptDisconnect").onclick=chatgptDisconnect;
+  $("geminiEnable").onclick=enableGemini;
+  $("duckaiOpenWeb").onclick=()=>openExternal("https://duck.ai/");
+  $("duckaiSearchWeb").onclick=()=>{
+    const q=$("chatInput").value.trim();
+    if(!q){toast("Type a search query first");return}
+    send("Use Duck.ai web search for "+q);
+  };
+  Array.from(document.querySelectorAll("[data-openkey]")).filter(b=>b.dataset.openkey==="Google AI / Gemini").forEach(b=>b.onclick=()=>openExternal("https://aistudio.google.com/apikey"));
+  document.querySelectorAll("[data-url]").forEach(b=>b.onclick=()=>{save(K.url,b.dataset.url);workingUrl="";
+    $("setUrl").value=b.dataset.url;loadModels(true)});
+  $("darkToggle").onchange=e=>{applyTheme(e.target.checked?"dark":"light")};
+  $("lightBtn").onclick=()=>{$("darkToggle").checked=false;applyTheme("light")};
+  function applyTheme(t){document.body.dataset.theme=t;save(K.theme,t);$("darkToggle").checked=(t==="dark")}
+
+  /* ---------- drawer / views ---------- */
+  function closeDrawer(){$("drawer").classList.remove("open");$("scrim").classList.remove("show")}
+  $("menuBtn").onclick=()=>{$("drawer").classList.add("open");$("scrim").classList.add("show")};
+  $("scrim").onclick=closeDrawer;
+  document.querySelectorAll(".mitem").forEach(b=>b.onclick=()=>{switchView(b.dataset.go);closeDrawer()});
+  const TABVIEWS=["chat","code","notes"];
+  function switchView(v){
+    document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id==="view-"+v));
+    document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===v));
+    document.querySelectorAll(".mitem").forEach(b=>b.classList.toggle("sel",b.dataset.go===v));
+    if(v==="recents")drawRecents();if(v==="artifacts")drawArtifacts();
+    if(v==="notes")drawNotes($("noteSearch").value);if(v==="profile")drawProfile();
+    if(v==="tools"||v==="caps")drawToggles();if(v==="aimode")drawModes();
+    if(v==="connectorsettings"){drawConnectorSettings();loadChatgptStatus(false)}
+    if(v==="theme")applyTheme(ls(K.theme,"dark"));
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchView(b.dataset.tab));
+
+  /* ---------- init ---------- */
+  applyTheme(ls(K.theme,"dark"));
+  $("modeLabel").textContent=modeName+" mode";
+  applyToggles();drawToggles();drawModes();drawProfile();drawRecents();drawArtifacts();drawNotes();drawChat();drawAttach();drawConnectorSettings();
+  loadModels();loadConnectors();loadChatgptStatus(false);setInterval(check,15000);
+})();
+</script>
+</body>
+</html>

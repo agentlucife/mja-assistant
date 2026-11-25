@@ -201,6 +201,7 @@
         <button class="chip">Explain this code</button>
         <button class="chip">Write a message</button>
         <button class="chip">Brainstorm ideas</button>
+        <button class="chip">Use Duck.ai web</button>
       </div>
       <div class="attachbar" id="attachBar"></div>
       <div class="composer">
@@ -290,7 +291,7 @@
     <section class="view" id="view-connectorsettings">
       <div class="pane">
         <h3 style="margin:0">🔐 Connector settings</h3>
-        <p style="color:var(--muted);font-size:12px;margin:0">Sign in with ChatGPT or add a Google AI / Gemini key below. Other plug credentials are stored in this app and sent only to your local MJA server when you tap “Push keys to server”.</p>
+        <p style="color:var(--muted);font-size:12px;margin:0">Duck.ai needs no key. Sign in with ChatGPT or add a Google AI / Gemini key below. Other plug credentials are stored in this app and sent only to your local MJA server when you tap “Push keys to server”.</p>
         <p style="color:var(--muted);font-size:12px;margin:0">The AI is told which connectors are ready, but never sees credential values.</p>
         <div class="card" id="chatgptAuthCard">
           <div class="row"><div><h3 style="margin:0">💬 ChatGPT / OpenAI sign-in</h3><p id="chatgptStatus">Checking…</p></div><span class="dot" id="chatgptDot"></span></div>
@@ -312,11 +313,19 @@
           </div>
           <p class="hint" id="geminiDetail" style="margin:8px 0 0">Uses a Google AI Studio key. Gemini models appear in the model picker after enabling.</p>
         </div>
+        <div class="card" id="duckaiCard">
+          <div class="row"><div><h3 style="margin:0">🦆 Duck.ai web + images</h3><p id="duckaiStatus">Checking…</p></div><span class="dot" id="duckaiDot"></span></div>
+          <div class="flex" style="margin-top:9px">
+            <button class="btn ghost sm" id="duckaiOpenWeb">Open Duck.ai web</button>
+            <button class="btn sm" id="duckaiSearchWeb">Search with Duck.ai</button>
+          </div>
+          <p class="hint" id="duckaiDetail" style="margin:8px 0 0">No key needed. Prompts such as “craet in imger of italy” go from MJA to Duck.ai; generated images are saved on your local server and shown in chat with a download link. Duck.ai is required by default — no silent Pollinations fallback.</p>
+        </div>
         <div class="flex">
           <button class="btn sm" id="pushConnectorKeys">Push keys to server</button>
           <button class="btn ghost sm" id="refreshConnectorStatus">Refresh status</button>
         </div>
-        <p class="hint" style="margin:0">Formats: Shopify = <b>shop.myshopify.com|admin_token</b>, WhatsApp = <b>phone_number_id|access_token</b>, Google/Spotify = <b>client_id|client_secret</b> (optional third part: access_token), Pollinations/OpenCode = <b>api_key</b>. Pollinations image and slideshow video work with no key.</p>
+        <p class="hint" style="margin:0">Formats: Shopify = <b>shop.myshopify.com|admin_token</b>, WhatsApp = <b>phone_number_id|access_token</b>, Google/Spotify = <b>client_id|client_secret</b> (optional third part: access_token), Pollinations/OpenCode = <b>api_key</b>. Duck.ai, Pollinations images, and slideshow video work with no key.</p>
         <div id="connectorSettingList"></div>
       </div>
     </section>
@@ -389,7 +398,7 @@
           <div class="field"><label>Bearer token (if Proxy Auth is on)</label><input type="text" id="setToken" /></div>
           <div class="flex"><button class="btn" id="setSave">Save settings</button>
             <button class="btn ghost" id="setTest">Test connection</button></div>
-          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses Gemini 3.5 Flash Lite.</p>
+          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses the Gemini 3.5 Flash Lite fallback.</p>
         </div>
         <div class="card"><h3 style="margin:0 0 6px">Connection help</h3>
           <p class="hint" style="margin:0">If you see “Failed to fetch”: start <b>mja-server</b> in Acode terminal, keep MJA on port 8082, and enable “Install unknown apps” + local network for this app. Try both 127.0.0.1 and localhost above.</p>
@@ -477,6 +486,7 @@
   ];
   const PLUGS=[
     ["Google Drive","Cloud files and documents."],
+    ["Duck.ai","No-key web search and AI image generation through Duck.ai."],
     ["Pollinations AI","Free AI image generation and optional true AI video."],
     ["OpenCode Free","Free OpenCode models through the local MJA server."],
     ["ChatGPT / OpenAI","ChatGPT sign-in for OpenAI Codex models."],
@@ -509,8 +519,6 @@
 
   let caps=ls(K.caps,null);if(!caps||typeof caps!=="object"){caps={}}
   CAPS.forEach(c=>{if(typeof caps[c[0]]!=="boolean")caps[c[0]]=c[0]!=="live"});
-  /* Live tool calls caused errors from unconfigured connectors on older installs.
-     Turn them off once, then respect the user's choice from Settings. */
   if(ls("mja.liveOff",false)!==true){caps.live=false;save("mja.liveOff",true)}
   let tools=ls(K.tools,null);if(!tools||typeof tools!=="object"){tools={};TOOLS.forEach(t=>tools[t[0]]=true)}
   let modeName=ls(K.mode,"General");if(!MODES[modeName])modeName="General";
@@ -646,13 +654,17 @@
     return " When asked to build, create, zip, deploy, or write a project, first show a short visible plan labeled 'Thinking': goal, stack/tool choices, files, and steps. Then provide the finished result. If credentials are missing, say exactly what is needed.";
   }
   function activeConnectorTools(){
-    return connectorTools.filter(t=>caps.media||!String(t.function&&t.function.name||"").startsWith("pollinations_"));
+    const mediaOnly={pollinations_generate_image:1,pollinations_generate_video:1,duckai_generate_image:1};
+    return connectorTools.filter(t=>caps.media||!mediaOnly[String(t.function&&t.function.name||"")]);
   }
   function liveContext(){
     const active=activeConnectorTools();
     if(!caps.live||!active.length)return "";
     return " Live connector tools are available: "+active.map(t=>t.function&&t.function.name).filter(Boolean).join(", ")+
-      ". Use them only when needed and report the result clearly. Image and video tools return playable media links; include them in your final answer.";
+      ". Use them only when needed and report the result clearly. Image and video tools return playable, downloadable media links; include them in your final answer."+
+      " For image creation, use duckai_generate_image. Use pollinations_generate_image only when the user explicitly asks for Pollinations; fallback=true on duckai_generate_image is opt-in and must be labeled."+
+      " The phrase 'Duck.ai web' means duckai_web_search or opening https://duck.ai/, never image generation."+
+      " If Duck.ai image generation fails, report the error plainly; do not silently switch providers.";
   }
   function sysPrompt(){return (MODES[modeName]||MODES.General)+plugContext()+connectorContext()+thinkingContext()+liveContext()}
 
@@ -786,6 +798,11 @@
       setTimeout(()=>{loadConnectors(true);loadModels(true)},1500);
     }catch(e){toast(e.message||String(e))}
   }
+  function drawDuckStatus(){
+    const st=connectorStatus.duckai;const ready=!!(st&&st.configured);
+    if($("duckaiStatus"))$("duckaiStatus").textContent=ready?"Ready · no key required":"Not available on this server";
+    if($("duckaiDot"))$("duckaiDot").classList.toggle("on",ready);
+  }
   function renderProviders(data){
     const groups={};data.forEach(m=>{const k=(m.owned_by||"other").split("/")[0];groups[k]=(groups[k]||0)+1});
     $("providerList").innerHTML=Object.keys(groups).map(k=>
@@ -841,13 +858,14 @@
         const media=m.media;
         if(media&&media.url&&/^https?:\/\//.test(media.url)){
           const safe=esc(media.url).replace(/"/g,"&quot;");
+          const dl=esc(media.url+(media.url.indexOf("?")>=0?"&":"?")+"download=1").replace(/"/g,"&quot;");
           const box=document.createElement("div");box.className="media-card";
           if(media.type==="image"){
-            box.innerHTML='<b>🖼 '+esc(media.title||"Generated image")+'</b><img src="'+safe+'" alt="Generated image"><a href="'+safe+'" target="_blank" rel="noreferrer">Open image</a>';
+            box.innerHTML='<b>🖼 '+esc(media.title||"Generated image")+'</b><img src="'+safe+'" alt="Generated image"><div class="flex"><a href="'+safe+'" target="_blank" rel="noreferrer">Open image</a><a href="'+dl+'" download="mja-image" target="_blank" rel="noreferrer">Download image</a></div>';
           }else if(media.type==="video"){
-            box.innerHTML='<b>🎬 '+esc(media.title||"Generated video")+'</b><video controls playsinline src="'+safe+'"></video><a href="'+safe+'" target="_blank" rel="noreferrer">Open video</a>';
+            box.innerHTML='<b>🎬 '+esc(media.title||"Generated video")+'</b><video controls playsinline src="'+safe+'"></video><div class="flex"><a href="'+safe+'" target="_blank" rel="noreferrer">Open video</a><a href="'+dl+'" download="mja-video" target="_blank" rel="noreferrer">Download video</a></div>';
           }else{
-            box.innerHTML='<a href="'+safe+'" target="_blank" rel="noreferrer">'+esc(media.title||"Open media")+'</a>';
+            box.innerHTML='<a href="'+safe+'" target="_blank" rel="noreferrer">'+esc(media.title||"Open media")+'</a> <a href="'+dl+'" download>Download</a>';
           }
           d.appendChild(box);
         }
@@ -902,7 +920,7 @@
       if(!ok)return {ok:false,error:"User denied this tool call"};
     }
     const r=await fetchJSON("/v1/connectors/invoke",{method:"POST",headers:headers(),
-      body:JSON.stringify({tool:name,arguments:args})},180000);
+      body:JSON.stringify({tool:name,arguments:args})},300000);
     return await r.json();
   }
   async function consumeStream(payload){
@@ -941,6 +959,33 @@
     return Object.keys(calls).sort((a,b)=>Number(a)-Number(b)).map(k=>calls[k])
       .filter(c=>c.function&&c.function.name);
   }
+  function duckaiWebIntent(value){
+    const text=String(value||"").trim().replace(/^(?:hey|ok|please)\s+/i,"");
+    if(!/\bduck\.?ai\b/i.test(text))return null;
+    if(duckaiImagePrompt(text))return null;
+    if(/^(?:use|open|go(?:\s+to)?|launch|take me to|visit)\s+(?:the\s+)?duck\.?ai(?:\s+web)?\s*$/i.test(text)){
+      return {open:true,query:""};
+    }
+    const m=text.match(/^(?:use|using|search|search with|look up with|ask|try)\s+(?:the\s+)?duck\.?ai(?:\s+web)?(?:\s+(?:search|to\s+search))?\s*(?:for|about|on|:)?\s*(.+)$/i);
+    if(m&&m[1]&&m[1].trim())return {open:false,query:m[1].trim()};
+    if(/\b(?:web\s+search|search\s+the\s+web|look\s+up)\b/i.test(text)){
+      const q=text.replace(/^(?:use|using|please)\s+/i,"")
+        .replace(/\b(?:with|using|via|on)\s+(?:the\s+)?duck\.?ai(?:\s+web)?\b/gi,"")
+        .replace(/\b(?:web\s+search|search\s+the\s+web|look\s+up|for|about)\b/gi,"")
+        .replace(/\s+/g," ").trim();
+      if(q)return {open:false,query:q};
+    }
+    return null;
+  }
+  function duckaiImagePrompt(value){
+    const text=String(value||"").trim();
+    if(!text)return "";
+    const make=/\b(craet|creat(e|ing)?|mak(e|ing)|generat(e|ing)|draw|paint(ing)?|render(ing)?|image|imger|picture|pic|photo)\b/i;
+    const picture=/\b(imger|image|img|pictures?|pics?|photos?|artwork|illustration|wallpaper)\b/i;
+    if(!make.test(text)||!picture.test(text))return "";
+    if(/\b(video|clip|movie|film)\b/i.test(text)&&!/\b(image|imger|picture|pic|photo|artwork|illustration)\b/i.test(text))return "";
+    return text;
+  }
   async function send(prefill){
     if(busy)return;
     let text=(prefill||$("chatInput").value).trim();
@@ -954,28 +999,82 @@
     busy=true;drawChat();$("sendBtn").disabled=true;$("stopBtn").style.display="";
     controller=new AbortController();
     try{
-      const activeTools=activeConnectorTools();
-      const rounds=caps.live&&activeTools.length?4:1;
-      for(let round=0;round<rounds;round++){
-        if(round>0)history.push({role:"assistant",content:"",reasoning:""});
-        const payload={model:chosenModel(),messages:[{role:"system",content:sysPrompt()}]
-          .concat(buildMessages()),stream:true};
-        if(caps.live&&activeTools.length&&round<rounds-1)payload.tools=activeTools;
-        const calls=await consumeStream(payload);
-        if(!calls.length||!caps.live)break;
-        const assistant=history[history.length-1];assistant.tool_calls=calls;drawChat();
-        for(const call of calls){
-          let args={};try{args=JSON.parse(call.function.arguments||"{}")}catch(_){}
-          toast("Running "+call.function.name);
-          const result=await invokeConnectorTool(call.function.name,args);
-          const entry={role:"tool",tool_call_id:call.id||("call_"+Date.now()+"_"+Math.random().toString(36).slice(2)),
-            content:JSON.stringify(result)};
-          if(result&&result.media)entry.media=result.media;
-          history.push(entry);
+      const assistant=history[history.length-1];
+      const duckReady=!!(connectorStatus.duckai&&connectorStatus.duckai.configured);
+      let handledDirect=false;
+      const webIntent=duckReady?duckaiWebIntent(text):null;
+      if(webIntent){
+        try{
+          if(webIntent.open){
+            openExternal("https://duck.ai/");
+            assistant.content="Opened Duck.ai web. To search from MJA, say “Use Duck.ai web search for your question”.";
+            handledDirect=true;drawChat();
+          }else{
+            assistant.content="🔎 Searching the web with Duck.ai…";drawChat();
+            const result=await invokeConnectorTool("duckai_web_search",{query:webIntent.query});
+            if(result&&result.ok){
+              assistant.content=(result.provider==="duck.ai"?"Duck.ai web result:\n\n":"Duck.ai was unavailable; DuckDuckGo instant answer:\n\n")+
+                String(result.answer||"");
+              if(result.search_url)assistant.content+="\n\n"+result.search_url;
+              history.push({role:"tool",tool_call_id:"duckai_web_"+Date.now(),content:JSON.stringify(result)});
+              handledDirect=true;drawChat();
+            }else{
+              assistant.content="Duck.ai web search failed"+(result&&result.detail?": "+result.detail:"")+".";
+              handledDirect=true;drawChat();
+            }
+          }
+        }catch(e){
+          assistant.content="Duck.ai web search failed: "+((e&&e.message)||e);
+          handledDirect=true;drawChat();
         }
-        drawChat();
       }
-      if(!caps.streaming&&history[history.length-1].content==="")history[history.length-1].content="(no content)";
+      const duckPrompt=!handledDirect&&duckReady?duckaiImagePrompt(text):"";
+      if(duckPrompt){
+        try{
+          assistant.content="🦆 Creating your image with Duck.ai…";drawChat();
+          const result=await invokeConnectorTool("duckai_generate_image",{prompt:duckPrompt,fallback:false});
+          if(result&&result.ok&&result.media){
+            assistant.content=result.provider==="duck.ai"
+              ?"Here is your image from Duck.ai. Use Download image below to save it."
+              :"Duck.ai was unavailable, so MJA used a clearly labeled fallback image provider.";
+            history.push({role:"tool",tool_call_id:"duckai_"+Date.now(),
+              content:JSON.stringify(result),media:result.media});
+            handledDirect=true;drawChat();
+          }else{
+            assistant.content="Duck.ai image failed"+(result&&result.detail?": "+result.detail:"")+". No fallback provider was used.";
+            handledDirect=true;drawChat();
+          }
+        }catch(e){
+          assistant.content="Duck.ai image failed: "+((e&&e.message)||e)+". No fallback provider was used.";
+          toast("Duck.ai image failed");
+          handledDirect=true;drawChat();
+        }
+      }
+      if(!handledDirect){
+        const activeTools=activeConnectorTools();
+        const rounds=caps.live&&activeTools.length?4:1;
+        for(let round=0;round<rounds;round++){
+          if(round>0)history.push({role:"assistant",content:"",reasoning:""});
+          const payload={model:chosenModel(),messages:[{role:"system",content:sysPrompt()}]
+            .concat(buildMessages()),stream:true};
+          if(caps.live&&activeTools.length&&round<rounds-1)payload.tools=activeTools;
+          const calls=await consumeStream(payload);
+          if(!calls.length||!caps.live)break;
+          const current=history[history.length-1];current.tool_calls=calls;drawChat();
+          for(const call of calls){
+            let args={};try{args=JSON.parse(call.function.arguments||"{}")}catch(_){}
+            toast("Running "+call.function.name);
+            const result=await invokeConnectorTool(call.function.name,args);
+            const entry={role:"tool",tool_call_id:call.id||("call_"+Date.now()+"_"+Math.random().toString(36).slice(2)),
+              content:JSON.stringify(result)};
+            if(result&&result.media)entry.media=result.media;
+            history.push(entry);
+          }
+          drawChat();
+        }
+        const last=history[history.length-1];
+        if(!caps.streaming&&last.content==="")last.content="(no content)";
+      }
     }catch(e){
       const m=(e&&e.name==="AbortError")?"":("\n\n⚠ "+((e&&e.message)||e));
       const target=history[history.length-1];
@@ -1149,7 +1248,7 @@
     });
   }
   const SERVER_CONNECTORS={
-    "Google Drive":"google_drive","Spotify":"spotify","Shopify":"shopify",
+    "Google Drive":"google_drive","Duck.ai":"duckai","Spotify":"spotify","Shopify":"shopify",
     "WhatsApp by Agent Messenger":"whatsapp","Pollinations AI":"pollinations",
     "OpenCode Free":"opencode"
   };
@@ -1196,7 +1295,7 @@
   function drawConnectorSettings(){
     const box=$("connectorSettingList");if(!box)return;
     box.innerHTML="";
-    PLUGS.filter(p=>p[0]!=="ChatGPT / OpenAI"&&p[0]!=="Google AI / Gemini").forEach(p=>{
+    PLUGS.filter(p=>p[0]!=="ChatGPT / OpenAI"&&p[0]!=="Google AI / Gemini"&&p[0]!=="Duck.ai").forEach(p=>{
       const name=p[0],saved=!!connectors[name],id=serverConnectorId(name);
       const st=id?connectorStatus[id]:null;
       const label=id?(st&&st.configured?" · live on server":" · not live yet"):"";
@@ -1236,7 +1335,7 @@
         "Google AI / Gemini":"https://aistudio.google.com/apikey"};
       openExternal(urls[b.dataset.openkey]||"https://opencode.ai/auth");
     });
-    drawChatgptStatus();drawGeminiStatus();
+    drawChatgptStatus();drawGeminiStatus();drawDuckStatus();
   }
   function applyToggles(){
     $("attachBtn").style.display=tools.attach?"":"none";
@@ -1292,6 +1391,12 @@
   $("chatgptCancel").onclick=chatgptCancel;
   $("chatgptDisconnect").onclick=chatgptDisconnect;
   $("geminiEnable").onclick=enableGemini;
+  $("duckaiOpenWeb").onclick=()=>openExternal("https://duck.ai/");
+  $("duckaiSearchWeb").onclick=()=>{
+    const q=$("chatInput").value.trim();
+    if(!q){toast("Type a search query first");return}
+    send("Use Duck.ai web search for "+q);
+  };
   Array.from(document.querySelectorAll("[data-openkey]")).filter(b=>b.dataset.openkey==="Google AI / Gemini").forEach(b=>b.onclick=()=>openExternal("https://aistudio.google.com/apikey"));
   document.querySelectorAll("[data-url]").forEach(b=>b.onclick=()=>{save(K.url,b.dataset.url);workingUrl="";
     $("setUrl").value=b.dataset.url;loadModels(true)});

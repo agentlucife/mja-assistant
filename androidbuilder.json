@@ -6,8 +6,8 @@
   "tv": false,
   "name": "MJA Assistant",
   "id": "io.github.MrJeffAgency.mjaassistant",
-  "versionName": "1.7.0",
-  "versionCode": 9,
+  "versionName": "1.8.1",
+  "versionCode": 11,
   "minSdk": 24,
   "targetSdk": 35
 }

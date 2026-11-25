@@ -1,0 +1,2 @@
+- 6e5a529 Add Duck.ai search and image generation to MJA Assistant
+- 6408218 Make Duck.ai image generation strict and route web prompts

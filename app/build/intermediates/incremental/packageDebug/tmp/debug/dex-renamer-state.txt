@@ -1,0 +1,4 @@
+#Wed Nov 25 12:30:10 UTC 2026
+base.0=/home/runner/work/mja-assistant/mja-assistant/app/build/intermediates/dex/debug/mergeDexDebug/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

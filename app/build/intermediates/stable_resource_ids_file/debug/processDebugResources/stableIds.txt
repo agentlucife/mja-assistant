@@ -1,0 +1,6 @@
+io.github.MrJeffAgency.mjaassistant:string/app_name = 0x7f040000
+io.github.MrJeffAgency.mjaassistant:style/AppTheme = 0x7f050000
+io.github.MrJeffAgency.mjaassistant:mipmap/ic_launcher_round = 0x7f030001
+io.github.MrJeffAgency.mjaassistant:id/webview = 0x7f010000
+io.github.MrJeffAgency.mjaassistant:layout/activity_main = 0x7f020000
+io.github.MrJeffAgency.mjaassistant:mipmap/ic_launcher = 0x7f030000
