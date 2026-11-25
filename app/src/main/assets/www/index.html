@@ -385,11 +385,11 @@
         <h3 style="margin:0">⚙ Settings</h3>
         <div class="card">
           <div class="field"><label>Server URL</label><input type="text" id="setUrl" /></div>
-          <div class="field"><label>Model (blank = recommended Nemotron)</label><input type="text" id="setModel" /></div>
+          <div class="field"><label>Model (blank = recommended Gemini Flash Lite)</label><input type="text" id="setModel" /></div>
           <div class="field"><label>Bearer token (if Proxy Auth is on)</label><input type="text" id="setToken" /></div>
           <div class="flex"><button class="btn" id="setSave">Save settings</button>
             <button class="btn ghost" id="setTest">Test connection</button></div>
-          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses the verified Nemotron fallback.</p>
+          <p class="hint">MJA must be running on this device. Default: http://127.0.0.1:8082 · Blank model uses Gemini 3.5 Flash Lite.</p>
         </div>
         <div class="card"><h3 style="margin:0 0 6px">Connection help</h3>
           <p class="hint" style="margin:0">If you see “Failed to fetch”: start <b>mja-server</b> in Acode terminal, keep MJA on port 8082, and enable “Install unknown apps” + local network for this app. Try both 127.0.0.1 and localhost above.</p>
@@ -432,7 +432,7 @@
   const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
   const url=()=>ls(K.url,"")||"http://127.0.0.1:8082";
   const model=()=>ls(K.model,"")||"";
-  const DEFAULT_MODEL="anthropic/nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b";
+  const DEFAULT_MODEL="gemini/models/gemini-3.5-flash-lite";
   const chosenModel=()=>model()||DEFAULT_MODEL;
   const token=()=>ls(K.token,"")||"";
   const esc=s=>String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
